@@ -1,172 +1,153 @@
-// /api/metrics.js
+// api/metrics.js
+import pkg from 'pg';
 
-import pkg from "pg";
 const { Pool } = pkg;
 
-// Pool de conexão com o Postgres (Neon)
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false, // obrigatório para Neon em ambiente serverless
-  },
+  ssl: { rejectUnauthorized: false }
 });
 
-function percentage(part, total) {
-  if (!total || total === 0) return 0;
-  return Math.round((part / total) * 100);
-}
-
 export default async function handler(req, res) {
-  let client;
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
   try {
-    if (!process.env.DATABASE_URL) {
-      throw new Error("DATABASE_URL não configurado nas variáveis de ambiente.");
+    const client = await pool.connect();
+
+    try {
+      const [
+        visitorsActiveResult,
+        checkoutsTodayResult,
+        ordersPaidTodayResult,
+        pixGeneratedTodayResult,
+        pixGenerated7dResult,
+        pixPaid7dResult,
+        revenue7dResult,
+        stepsLast10Result
+      ] = await Promise.all([
+        // Visitantes ativos (últimos 5 minutos) – sessões únicas
+        client.query(`
+          SELECT COUNT(DISTINCT session_id) AS count
+          FROM events
+          WHERE created_at >= NOW() - INTERVAL '5 minutes'
+        `),
+
+        // Checkouts iniciados hoje
+        client.query(`
+          SELECT COUNT(*) AS count
+          FROM events
+          WHERE type = 'checkout'
+            AND created_at::date = CURRENT_DATE
+        `),
+
+        // Pedidos pagos hoje
+        client.query(`
+          SELECT COUNT(*) AS count
+          FROM events
+          WHERE type = 'order_paid'
+            AND created_at::date = CURRENT_DATE
+        `),
+
+        // Pix gerados hoje (para calcular carrinho abandonado)
+        client.query(`
+          SELECT COUNT(*) AS count
+          FROM events
+          WHERE type = 'pix_generated'
+            AND created_at::date = CURRENT_DATE
+        `),
+
+        // Pix gerados últimos 7 dias
+        client.query(`
+          SELECT COUNT(*) AS count
+          FROM events
+          WHERE type = 'pix_generated'
+            AND created_at >= (CURRENT_DATE - INTERVAL '7 days')
+        `),
+
+        // Pix pagos últimos 7 dias
+        client.query(`
+          SELECT COUNT(*) AS count
+          FROM events
+          WHERE type = 'order_paid'
+            AND created_at >= (CURRENT_DATE - INTERVAL '7 days')
+        `),
+
+        // Receita dos últimos 7 dias (em centavos)
+        client.query(`
+          SELECT COALESCE(SUM(value_in_cents), 0) AS sum
+          FROM events
+          WHERE type = 'order_paid'
+            AND created_at >= (CURRENT_DATE - INTERVAL '7 days')
+        `),
+
+        // Comportamento do cliente (últimos 10 minutos)
+        client.query(`
+          SELECT type, COUNT(*) AS count
+          FROM events
+          WHERE created_at >= NOW() - INTERVAL '10 minutes'
+            AND type IN ('checkout', 'pix_generated', 'order_paid')
+          GROUP BY type
+        `)
+      ]);
+
+      const num = (v) => Number(v || 0);
+
+      const visitors_active = num(visitorsActiveResult.rows[0]?.count);
+      const checkouts_today = num(checkoutsTodayResult.rows[0]?.count);
+      const orders_paid_today = num(ordersPaidTodayResult.rows[0]?.count);
+      const pix_generated_today = num(pixGeneratedTodayResult.rows[0]?.count);
+
+      const pix_generated_7d = num(pixGenerated7dResult.rows[0]?.count);
+      const pix_paid_7d = num(pixPaid7dResult.rows[0]?.count);
+      const revenue_7d = num(revenue7dResult.rows[0]?.sum);
+
+      const abandoned_today = Math.max(pix_generated_today - orders_paid_today, 0);
+
+      const pix_conversion =
+        pix_generated_7d > 0
+          ? Math.round((pix_paid_7d / pix_generated_7d) * 1000) / 10
+          : 0;
+
+      // Aqui eu usei a mesma base de conversão (pix gerado → pix pago)
+      // Se quiser, depois podemos mudar para outra fórmula.
+      const checkout_conversion = pix_conversion;
+
+      const stepsMap = {
+        checkout: 0,
+        pix_generated: 0,
+        order_paid: 0
+      };
+
+      for (const row of stepsLast10Result.rows) {
+        const t = row.type;
+        if (stepsMap[t] !== undefined) {
+          stepsMap[t] = num(row.count);
+        }
+      }
+
+      res.status(200).json({
+        visitors_active,
+        checkouts_today,
+        orders_paid_today,
+        abandoned_today,
+        pix_generated_7d,
+        pix_paid_7d,
+        revenue_7d,
+        pix_conversion,
+        checkout_conversion,
+        steps: stepsMap
+      });
+    } finally {
+      client.release();
     }
-
-    client = await pool.connect();
-
-    // Visitantes ativos - últimos 5 minutos
-    const visitors_active = await client.query(
-      `
-      SELECT COUNT(DISTINCT session_id) AS qty
-      FROM events
-      WHERE type = 'checkout_view'
-        AND created_at > NOW() - INTERVAL '5 minutes'
-    `
-    );
-
-    // Checkouts iniciados hoje
-    const checkouts_today = await client.query(
-      `
-      SELECT COUNT(*) AS qty
-      FROM events
-      WHERE type = 'checkout_view'
-        AND created_at::date = CURRENT_DATE
-    `
-    );
-
-    // Pix gerados hoje
-    const pix_today = await client.query(
-      `
-      SELECT COUNT(*) AS qty
-      FROM events
-      WHERE type = 'pix_generated'
-        AND created_at::date = CURRENT_DATE
-    `
-    );
-
-    // Pedidos pagos hoje
-    const paid_today = await client.query(
-      `
-      SELECT COUNT(*) AS qty
-      FROM events
-      WHERE type = 'order_paid'
-        AND created_at::date = CURRENT_DATE
-    `
-    );
-
-    // Pix gerados últimos 7 dias
-    const pix_generated_7d = await client.query(
-      `
-      SELECT COUNT(*) AS qty
-      FROM events
-      WHERE type = 'pix_generated'
-        AND created_at > NOW() - INTERVAL '7 days'
-    `
-    );
-
-    // Pix pagos últimos 7 dias
-    const pix_paid_7d = await client.query(
-      `
-      SELECT COUNT(*) AS qty
-      FROM events
-      WHERE type = 'order_paid'
-        AND created_at > NOW() - INTERVAL '7 days'
-    `
-    );
-
-    // Receita últimos 7 dias (em centavos)
-    const revenue_7d = await client.query(
-      `
-      SELECT COALESCE(SUM(value_in_cents), 0) AS revenue_cents
-      FROM events
-      WHERE type = 'order_paid'
-        AND created_at > NOW() - INTERVAL '7 days'
-    `
-    );
-
-    // Comportamento (últimos 10 minutos)
-    const stepCheckout = await client.query(
-      `
-      SELECT COUNT(*) AS qty
-      FROM events
-      WHERE type = 'checkout_view'
-        AND created_at > NOW() - INTERVAL '10 minutes'
-    `
-    );
-
-    const stepPix = await client.query(
-      `
-      SELECT COUNT(*) AS qty
-      FROM events
-      WHERE type = 'pix_generated'
-        AND created_at > NOW() - INTERVAL '10 minutes'
-    `
-    );
-
-    const stepPaid = await client.query(
-      `
-      SELECT COUNT(*) AS qty
-      FROM events
-      WHERE type = 'order_paid'
-        AND created_at > NOW() - INTERVAL '10 minutes'
-    `
-    );
-
-    // Normalização dos valores (COUNT sempre vem como string)
-    const visitorsActive = Number(visitors_active.rows[0].qty || 0);
-    const checkoutsToday = Number(checkouts_today.rows[0].qty || 0);
-    const pixToday = Number(pix_today.rows[0].qty || 0);
-    const paidToday = Number(paid_today.rows[0].qty || 0);
-    const pix7d = Number(pix_generated_7d.rows[0].qty || 0);
-    const pixPaid7d = Number(pix_paid_7d.rows[0].qty || 0);
-    const revenue7d = Number(revenue_7d.rows[0].revenue_cents || 0);
-
-    const stepCheckoutQty = Number(stepCheckout.rows[0].qty || 0);
-    const stepPixQty = Number(stepPix.rows[0].qty || 0);
-    const stepPaidQty = Number(stepPaid.rows[0].qty || 0);
-
-    // Carrinhos abandonados (aprox) = pix gerados hoje - pagos hoje
-    const abandonedToday = Math.max(pixToday - paidToday, 0);
-
-    // Conversões
-    const pixConversion = percentage(pixPaid7d, pix7d);
-    const checkoutConversion = percentage(pixPaid7d, pix7d);
-
-    // Resposta final
-    res.status(200).json({
-      visitors_active: visitorsActive,
-      checkouts_today: checkoutsToday,
-      orders_paid_today: paidToday,
-      abandoned_today: abandonedToday,
-      pix_generated_7d: pix7d,
-      pix_paid_7d: pixPaid7d,
-      revenue_7d: revenue7d,
-      pix_conversion: pixConversion,
-      checkout_conversion: checkoutConversion,
-      steps: {
-        checkout: stepCheckoutQty,
-        pix_generated: stepPixQty,
-        order_paid: stepPaidQty,
-      },
-    });
   } catch (err) {
-    console.error("Erro em /api/metrics:", err);
+    console.error('Erro ao gerar métricas:', err);
     res.status(500).json({
-      error: "Erro ao gerar métricas.",
-      details: String(err),
+      error: 'Erro ao gerar métricas.',
+      details: err.message
     });
-  } finally {
-    if (client) client.release();
   }
 }
