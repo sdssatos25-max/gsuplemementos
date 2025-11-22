@@ -1,111 +1,185 @@
-// api/metrics.js
+// /api/metrics.js
 import { Pool } from 'pg';
 
 const pool = new Pool({
-    connectionString: process.env.STORAGE_DATABASE_URL,
-    ssl: { rejectUnauthorized: false }
+  connectionString: process.env.DATABASE_URL,
 });
 
-function startOfToday() {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
-}
-
-function startOf7DaysAgo() {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    d.setDate(d.getDate() - 6);
-    return d;
-}
-
-const formatBRL = (cents) =>
-    `R$ ${(Number(cents || 0) / 100).toFixed(2).replace('.', ',')}`;
-
 export default async function handler(req, res) {
-    try {
-        const now = new Date();
-        const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
-        const today = startOfToday();
-        const sevenDaysAgo = startOf7DaysAgo();
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
 
-        // Visitantes ativos nos últimos 5 minutos
-        const visitorsResult = await pool.query(
-            `SELECT COUNT(DISTINCT session_id) AS count
-       FROM events
-       WHERE created_at >= $1 AND session_id IS NOT NULL`,
-            [fiveMinAgo.toISOString()]
-        );
-        const visitorsNow = Number(visitorsResult.rows[0]?.count || 0);
+  const client = await pool.connect();
 
-        // Checkouts iniciados hoje
-        const checkoutsResult = await pool.query(
-            `SELECT COUNT(*) AS count
-       FROM events
-       WHERE type = 'checkout_started' AND created_at >= $1`,
-            [today.toISOString()]
-        );
-        const checkoutsStarted = Number(checkoutsResult.rows[0]?.count || 0);
+  try {
+    const now = new Date();
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
 
-        // Pix gerados hoje
-        const pixGenResult = await pool.query(
-            `SELECT COUNT(*) AS count
-       FROM events
-       WHERE type = 'pix_generated' AND created_at >= $1`,
-            [today.toISOString()]
-        );
-        const pixGenerated = Number(pixGenResult.rows[0]?.count || 0);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-        // Vendas pagas hoje
-        const salesTodayResult = await pool.query(
-            `SELECT
-          COALESCE(SUM(value_in_cents), 0) AS total,
-          COUNT(*) AS count
-        FROM events
-        WHERE type = 'order_paid' AND created_at >= $1`,
-            [today.toISOString()]
-        );
-        const salesTodayCents = Number(salesTodayResult.rows[0]?.total || 0);
-        const ordersPaidToday = Number(salesTodayResult.rows[0]?.count || 0);
+    // 1) Visitantes ativos (últimos 5 minutos)
+    const visitorsNowResult = await client.query(
+      `
+      SELECT COUNT(DISTINCT session_id) AS c
+      FROM events
+      WHERE created_at >= NOW() - INTERVAL '5 minutes'
+    `
+    );
+    const visitorsNow = Number(visitorsNowResult.rows[0]?.c || 0);
 
-        // Carrinhos abandonados (aprox: pix gerado - pago)
-        const abandonedCarts = Math.max(pixGenerated - ordersPaidToday, 0);
-        const abandonedRate =
-            pixGenerated > 0 ? Math.round((abandonedCarts / pixGenerated) * 100) : 0;
+    // 2) Checkouts iniciados hoje
+    const checkoutsTodayResult = await client.query(
+      `
+      SELECT COUNT(*) AS c
+      FROM events
+      WHERE type = 'checkout_started'
+        AND created_at >= $1
+    `,
+      [todayStart]
+    );
+    const checkoutsStarted = Number(checkoutsTodayResult.rows[0]?.c || 0);
 
-        // Últimos 7 dias
-        const stats7dResult = await pool.query(
-            `SELECT
-          COUNT(*) FILTER (WHERE type = 'order_paid') AS orders_paid,
-          COALESCE(SUM(value_in_cents) FILTER (WHERE type = 'order_paid'), 0) AS revenue_paid,
-          COUNT(*) FILTER (WHERE type = 'checkout_started') AS checkouts_started
-        FROM events
-        WHERE created_at >= $1`,
-            [sevenDaysAgo.toISOString()]
-        );
+    // 3) Pix gerado hoje
+    const pixGeneratedTodayResult = await client.query(
+      `
+      SELECT COUNT(*) AS c
+      FROM events
+      WHERE type = 'pix_generated'
+        AND created_at >= $1
+    `,
+      [todayStart]
+    );
+    const pixGeneratedToday = Number(pixGeneratedTodayResult.rows[0]?.c || 0);
 
-        const row7d = stats7dResult.rows[0] || {};
-        const orders7d = Number(row7d.orders_paid || 0);
-        const revenue7dCents = Number(row7d.revenue_paid || 0);
-        const checkouts7d = Number(row7d.checkouts_started || 0);
-        const conversion7d =
-            checkouts7d > 0 ? Number(((orders7d / checkouts7d) * 100).toFixed(1)) : 0;
+    // 4) Pedidos pagos hoje
+    const salesTodayResult = await client.query(
+      `
+      SELECT
+        COUNT(*) AS orders,
+        COALESCE(SUM(value_in_cents), 0) AS total_cents
+      FROM events
+      WHERE type = 'order_paid'
+        AND created_at >= $1
+    `,
+      [todayStart]
+    );
+    const ordersToday = Number(salesTodayResult.rows[0]?.orders || 0);
+    const salesTodayCents = Number(salesTodayResult.rows[0]?.total_cents || 0);
+    const salesTodayBRL = (salesTodayCents / 100).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
 
-        res.status(200).json({
-            visitorsNow,
-            checkoutsStarted,
-            checkoutsChangeText: '+0% vs ontem', // placeholder
-            salesTodayBRL: formatBRL(salesTodayCents),
-            salesChangeText: '+0% vs ontem',     // placeholder
-            abandonedCarts,
-            abandonedRateText: `${abandonedRate}% abandono`,
-            orders7d,
-            revenue7dBRL: formatBRL(revenue7dCents),
-            conversion7d,
-            abandonedList: [] // dá pra popular depois com detalhes
-        });
-    } catch (err) {
-        console.error('Erro em /api/metrics:', err);
-        res.status(500).json({ error: 'Erro ao carregar métricas' });
-    }
+    // 5) Carrinhos abandonados hoje (aprox = pix gerado - pago)
+    const abandonedCarts = Math.max(pixGeneratedToday - ordersToday, 0);
+
+    // 6) Últimos 7 dias – funil + receita
+    const orders7dResult = await client.query(
+      `
+      SELECT
+        COUNT(*) AS orders,
+        COALESCE(SUM(value_in_cents), 0) AS total_cents
+      FROM events
+      WHERE type = 'order_paid'
+        AND created_at >= $1
+    `,
+      [sevenDaysAgo]
+    );
+    const orders7d = Number(orders7dResult.rows[0]?.orders || 0);
+    const revenue7dCents = Number(orders7dResult.rows[0]?.total_cents || 0);
+    const revenue7dBRL = (revenue7dCents / 100).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
+
+    const checkouts7dResult = await client.query(
+      `
+      SELECT COUNT(*) AS c
+      FROM events
+      WHERE type = 'pix_generated'
+        AND created_at >= $1
+    `,
+      [sevenDaysAgo]
+    );
+    const checkouts7d = Number(checkouts7dResult.rows[0]?.c || 0);
+
+    const conversion7d =
+      checkouts7d > 0 ? Number(((orders7d / checkouts7d) * 100).toFixed(2)) : 0;
+
+    // 7) Conversão de Pix (últimos 7 dias)
+    const pixGenerated7dResult = await client.query(
+      `
+      SELECT COUNT(*) AS c
+      FROM events
+      WHERE type = 'pix_generated'
+        AND created_at >= $1
+    `,
+      [sevenDaysAgo]
+    );
+    const pixGenerated7d = Number(pixGenerated7dResult.rows[0]?.c || 0);
+
+    const pixPaid7dResult = await client.query(
+      `
+      SELECT COUNT(*) AS c
+      FROM events
+      WHERE type = 'order_paid'
+        AND created_at >= $1
+    `,
+      [sevenDaysAgo]
+    );
+    const pixPaid7d = Number(pixPaid7dResult.rows[0]?.c || 0);
+
+    const pixConversionPercent =
+      pixGenerated7d > 0
+        ? Number(((pixPaid7d / pixGenerated7d) * 100).toFixed(2))
+        : 0;
+
+    // 8) COMPORTAMENTO DO CLIENTE – últimos 10 minutos
+    const funnelResult = await client.query(
+      `
+      SELECT type, COUNT(*) AS c
+      FROM events
+      WHERE created_at >= NOW() - INTERVAL '10 minutes'
+        AND type IN ('visit', 'checkout_started', 'pix_generated', 'order_paid')
+      GROUP BY type
+    `
+    );
+
+    const funnelMap = {};
+    funnelResult.rows.forEach((r) => {
+      funnelMap[r.type] = Number(r.c || 0);
+    });
+
+    const funnelLast10 = {
+      checkoutViews: funnelMap['visit'] || 0, // acessou o checkout
+      personalData: funnelMap['checkout_started'] || 0, // começou a preencher
+      paymentStep: funnelMap['pix_generated'] || 0, // chegou na tela do Pix
+      purchased: funnelMap['order_paid'] || 0, // pagou
+    };
+
+    res.status(200).json({
+      visitorsNow,
+      checkoutsStarted,
+      salesTodayBRL,
+      abandonedCarts,
+      orders7d,
+      revenue7dBRL,
+      conversion7d,
+      // Conversão de Pix
+      pixConversion: {
+        percent: pixConversionPercent,
+        generated7d: pixGenerated7d,
+        paid7d: pixPaid7d,
+      },
+      // Funil últimos 10 minutos
+      funnelLast10,
+    });
+  } catch (err) {
+    console.error('Error in /api/metrics:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
+  }
 }
