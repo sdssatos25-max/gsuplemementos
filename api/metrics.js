@@ -1,87 +1,171 @@
-import { sql } from '@vercel/postgres';
+// /api/metrics.js
+import { Pool } from 'pg';
+
+// Reaproveita o pool entre chamadas (importante em serverless)
+if (!globalThis.pgPool) {
+  globalThis.pgPool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false }, // necessário para Neon
+  });
+}
+const pool = globalThis.pgPool;
 
 export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  const client = await pool.connect();
+
   try {
     const now = new Date();
 
-    const fiveMinAgo = new Date(now.getTime() - 5 * 60 * 1000);
-    const tenMinAgo = new Date(now.getTime() - 10 * 60 * 1000);
-    const today = now.toISOString().slice(0, 10);
+    // Início do dia de hoje
+    const todayStart = new Date(now);
+    todayStart.setHours(0, 0, 0, 0);
 
-    // Visitantes ativos (últimos 5 min)
-    const activeVisitors = await sql`
-      SELECT COUNT(DISTINCT session_id) AS total
-      FROM events
-      WHERE event_type = 'checkout_view'
-      AND created_at >= ${fiveMinAgo}
-    `;
-
-    // Checkouts iniciados hoje
-    const pixGeneratedToday = await sql`
-      SELECT COUNT(*) AS total
-      FROM events
-      WHERE event_type = 'pix_generated'
-      AND DATE(created_at) = ${today}
-    `;
-
-    // Vendas hoje
-    const paidToday = await sql`
-      SELECT COUNT(*) AS total,
-             COALESCE(SUM(amount_cents),0) AS total_amount
-      FROM events
-      WHERE event_type = 'order_paid'
-      AND DATE(created_at) = ${today}
-    `;
-
-    // Carrinhos abandonados
-    const abandonedToday = await sql`
-      SELECT 
-        (SELECT COUNT(*) FROM events WHERE event_type='pix_generated' AND DATE(created_at)=${today}) -
-        (SELECT COUNT(*) FROM events WHERE event_type='order_paid' AND DATE(created_at)=${today})
-      AS total
-    `;
-
-    // Conversão últimos 7 dias
+    // Últimos 7 dias
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
-    const pix7d = await sql`
-      SELECT COUNT(*) AS total FROM events
-      WHERE event_type='pix_generated'
-      AND created_at >= ${sevenDaysAgo}
-    `;
+    // ========= VISITANTES ATIVOS (últimos 5 minutos) =========
+    const visitorsNowResult = await client.query(
+      `
+        SELECT COUNT(DISTINCT session_id) AS c
+        FROM events
+        WHERE type = 'visit'
+          AND created_at >= NOW() - INTERVAL '5 minutes'
+      `
+    );
+    const visitorsNow = Number(visitorsNowResult.rows[0]?.c || 0);
 
-    const paid7d = await sql`
-      SELECT COUNT(*) AS total FROM events
-      WHERE event_type='order_paid'
-      AND created_at >= ${sevenDaysAgo}
-    `;
+    // ========= PIX GERADO (CHECKOUTS INICIADOS) HOJE =========
+    const pixGeneratedTodayResult = await client.query(
+      `
+        SELECT COUNT(*) AS c
+        FROM events
+        WHERE type = 'pix_generated'
+          AND created_at >= $1
+      `,
+      [todayStart]
+    );
+    const checkoutsStarted = Number(pixGeneratedTodayResult.rows[0]?.c || 0);
 
-    const conversion = pix7d.rows[0].total > 0 
-      ? (paid7d.rows[0].total / pix7d.rows[0].total) * 100 
-      : 0;
-
-    // Comportamento do cliente (últimos 10 minutos)
-    const behavior = await sql`
-      SELECT event_type, COUNT(*) AS total
-      FROM events
-      WHERE created_at >= ${tenMinAgo}
-      GROUP BY event_type
-    `;
-
-    res.status(200).json({
-      activeVisitors: activeVisitors.rows[0].total,
-      checkoutsToday: pixGeneratedToday.rows[0].total,
-      paidOrdersToday: paidToday.rows[0].total,
-      revenueToday: paidToday.rows[0].total_amount / 100,
-      abandonedToday: abandonedToday.rows[0].total,
-      pixGenerated7d: pix7d.rows[0].total,
-      pixPaid7d: paid7d.rows[0].total,
-      conversion7d: conversion.toFixed(2),
-      behavior: behavior.rows
+    // ========= VENDAS HOJE (order_paid) =========
+    const salesTodayResult = await client.query(
+      `
+        SELECT
+          COUNT(*) AS orders,
+          COALESCE(SUM(value_in_cents), 0) AS total_cents
+        FROM events
+        WHERE type = 'order_paid'
+          AND created_at >= $1
+      `,
+      [todayStart]
+    );
+    const ordersToday = Number(salesTodayResult.rows[0]?.orders || 0);
+    const salesTodayCents = Number(salesTodayResult.rows[0]?.total_cents || 0);
+    const salesTodayBRL = (salesTodayCents / 100).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
     });
 
+    // ========= CARRINHOS ABANDONADOS HOJE =========
+    // Aproximação: Pix gerados - Pix pagos
+    const abandonedCarts = Math.max(checkoutsStarted - ordersToday, 0);
+
+    // ========= PEDIDOS + RECEITA (últimos 7 dias) =========
+    const orders7dResult = await client.query(
+      `
+        SELECT
+          COUNT(*) AS orders,
+          COALESCE(SUM(value_in_cents), 0) AS total_cents
+        FROM events
+        WHERE type = 'order_paid'
+          AND created_at >= $1
+      `,
+      [sevenDaysAgo]
+    );
+    const orders7d = Number(orders7dResult.rows[0]?.orders || 0);
+    const revenue7dCents = Number(orders7dResult.rows[0]?.total_cents || 0);
+    const revenue7dBRL = (revenue7dCents / 100).toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+    });
+
+    // ========= PIX GERADO / PAGO (últimos 7 dias) =========
+    const pixGenerated7dResult = await client.query(
+      `
+        SELECT COUNT(*) AS c
+        FROM events
+        WHERE type = 'pix_generated'
+          AND created_at >= $1
+      `,
+      [sevenDaysAgo]
+    );
+    const pixGenerated7d = Number(pixGenerated7dResult.rows[0]?.c || 0);
+
+    const pixPaid7dResult = await client.query(
+      `
+        SELECT COUNT(*) AS c
+        FROM events
+        WHERE type = 'order_paid'
+          AND created_at >= $1
+      `,
+      [sevenDaysAgo]
+    );
+    const pixPaid7d = Number(pixPaid7dResult.rows[0]?.c || 0);
+
+    const conversion7d =
+      pixGenerated7d > 0
+        ? Number(((pixPaid7d / pixGenerated7d) * 100).toFixed(2))
+        : 0;
+
+    const pixConversionPercent = conversion7d;
+
+    // ========= COMPORTAMENTO DO CLIENTE (últimos 10 minutos) =========
+    const funnelResult = await client.query(
+      `
+        SELECT type, COUNT(*) AS c
+        FROM events
+        WHERE created_at >= NOW() - INTERVAL '10 minutes'
+          AND type IN ('visit', 'checkout_started', 'pix_generated', 'order_paid')
+        GROUP BY type
+      `
+    );
+
+    const funnelMap = {};
+    for (const row of funnelResult.rows) {
+      funnelMap[row.type] = Number(row.c || 0);
+    }
+
+    const funnelLast10 = {
+      checkoutViews: funnelMap['visit'] || 0,
+      personalData: funnelMap['checkout_started'] || 0,
+      paymentStep: funnelMap['pix_generated'] || 0,
+      purchased: funnelMap['order_paid'] || 0,
+    };
+
+    // ========= RESPOSTA FINAL =========
+    res.status(200).json({
+      visitorsNow,
+      checkoutsStarted,
+      salesTodayBRL,
+      abandonedCarts,
+      orders7d,
+      revenue7dBRL,
+      conversion7d,
+      pixConversion: {
+        percent: pixConversionPercent,
+        generated7d: pixGenerated7d,
+        paid7d: pixPaid7d,
+      },
+      funnelLast10,
+    });
   } catch (err) {
-    console.error('Erro metrics:', err);
-    res.status(500).json({ error: 'Erro ao calcular métricas' });
+    console.error('Error in /api/metrics:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    client.release();
   }
 }
