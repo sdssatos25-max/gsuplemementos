@@ -1,167 +1,309 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
-<head>
+  <head>
     <meta charset="UTF-8" />
     <title>Dashboard do Checkout</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <style>
+      :root {
+        --bg: #f5f7fb;
+        --card-bg: #ffffff;
+        --primary: #6c63ff;
+        --primary-soft: #eef0ff;
+        --text-main: #222;
+        --text-soft: #555;
+        --border-soft: #e3e6f0;
+        --danger-soft: #ffe3e3;
+        --danger: #d64545;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          sans-serif;
+      }
+
+      body {
+        background: var(--bg);
+        padding: 24px;
+        color: var(--text-main);
+      }
+
+      h1 {
+        font-size: 26px;
+        margin-bottom: 4px;
+      }
+
+      .subtitle {
+        font-size: 14px;
+        color: var(--text-soft);
+        margin-bottom: 16px;
+      }
+
+      .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 18px;
+        font-size: 13px;
+      }
+
+      .alert-error {
+        background: var(--danger-soft);
+        border: 1px solid var(--danger);
+        color: var(--danger);
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .cards-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+        margin-bottom: 18px;
+      }
+
+      .card {
+        background: var(--card-bg);
+        border-radius: 12px;
+        padding: 16px 18px;
+        box-shadow: 0 8px 16px rgba(15, 23, 42, 0.05);
+        border: 1px solid var(--border-soft);
+      }
+
+      .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .card-title {
+        font-size: 13px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: var(--text-soft);
+      }
+
+      .card-badge-live {
+        font-size: 11px;
+        padding: 3px 8px;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        color: var(--primary);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .card-badge-live::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 999px;
+        background: #31c48d;
+      }
+
+      .card-value {
+        font-size: 24px;
+        font-weight: 700;
+        margin-bottom: 4px;
+      }
+
+      .card-sub {
+        font-size: 12px;
+        color: var(--text-soft);
+      }
+
+      .conversion-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 10px;
+        font-size: 12px;
+        color: var(--text-soft);
+      }
+
+      .conversion-bar {
+        margin-top: 8px;
+        height: 6px;
+        border-radius: 999px;
+        background: var(--primary-soft);
+        overflow: hidden;
+      }
+
+      .conversion-bar-fill {
+        height: 100%;
+        background: var(--primary);
+        width: 0%;
+        transition: width 0.3s ease;
+      }
+
+      .steps-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+      }
+
+      .step-item {
+        text-align: center;
+      }
+
+      .step-label {
+        font-size: 12px;
+        color: var(--text-soft);
+        margin-bottom: 4px;
+      }
+
+      .step-value {
+        font-size: 18px;
+        font-weight: 600;
+      }
+
+      @media (max-width: 768px) {
         body {
-            font-family: Arial, sans-serif;
-            background: #f5f7fb;
-            margin: 0;
-            padding: 20px;
-            color: #111;
+          padding: 16px;
         }
 
         h1 {
-            margin-bottom: 5px;
+          font-size: 22px;
         }
-
-        .subtitle {
-            color: #555;
-            margin-bottom: 15px;
-        }
-
-        .error-box {
-            background: #ffe9e9;
-            padding: 10px;
-            border-radius: 6px;
-            color: #a33;
-            display: none;
-            margin-bottom: 15px;
-        }
-
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 20px;
-        }
-
-        .card {
-            background: #fff;
-            border-radius: 10px;
-            padding: 15px;
-            box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
-        }
-
-        .card h3 {
-            margin: 0 0 8px;
-            font-size: 14px;
-            color: #666;
-        }
-
-        .value {
-            font-size: 22px;
-            font-weight: bold;
-        }
-
-        .small {
-            font-size: 12px;
-            color: #777;
-            margin-top: 5px;
-        }
-
-        .progress-bar {
-            margin-top: 10px;
-            height: 8px;
-            background: #eee;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: #4CAF50;
-            width: 0%;
-            transition: width 0.4s ease;
-        }
-
-        .timeline {
-            display: flex;
-            justify-content: space-between;
-            text-align: center;
-            margin-top: 10px;
-        }
-
-        .timeline div {
-            font-size: 13px;
-        }
+      }
     </style>
-</head>
-
-<body>
-
+  </head>
+  <body>
     <h1>Dashboard do Checkout</h1>
-    <div class="subtitle">Monitorando vendas em tempo real</div>
+    <p class="subtitle">Monitorando suas vendas em tempo real</p>
 
-    <div class="error-box" id="errorBox">
-        Erro ao carregar métricas. Verifique se /api/metrics está funcionando.
+    <div
+      id="metrics-error"
+      class="alert alert-error hidden"
+    >
+      Erro ao carregar métricas do painel. Verifique se <strong>/api/metrics</strong>
+      está funcionando.
     </div>
 
-    <div class="grid">
+    <!-- Primeira linha -->
+    <section class="cards-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Visitantes ativos agora</span>
+          <span class="card-badge-live">LIVE</span>
+        </div>
+        <div id="visitors-active" class="card-value">–</div>
+        <div class="card-sub">
+          Sessões que acessaram o checkout nos últimos <strong>5 minutos</strong>.
+        </div>
+      </div>
 
-        <div class="card">
-            <h3>VISITANTES ATIVOS AGORA</h3>
-            <div class="value" id="visitorsActive">–</div>
-            <div class="small">Sessões nos últimos 5 minutos</div>
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Checkouts iniciados hoje</span>
+        </div>
+        <div id="checkouts-today" class="card-value">–</div>
+        <div class="card-sub">
+          Cliques no botão <strong>&ldquo;Gerar QR Code Pix&rdquo;</strong> hoje.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Vendas hoje (Pix pago)</span>
+        </div>
+        <div id="orders-paid-today" class="card-value">–</div>
+        <div class="card-sub">
+          Total de pedidos com evento <strong>order_paid</strong> hoje.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Carrinhos abandonados hoje</span>
+        </div>
+        <div id="abandoned-today" class="card-value">–</div>
+        <div class="card-sub">
+          Aproximação: <strong>Pix gerados – Pix pagos</strong> no dia de hoje.
+        </div>
+      </div>
+    </section>
+
+    <!-- Segunda linha -->
+    <section class="cards-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Receita (últimos 7 dias)</span>
+        </div>
+        <div id="revenue-7d" class="card-value">R$ 0,00</div>
+        <div class="card-sub">
+          Considerando apenas pedidos marcados como <strong>order_paid</strong>.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Conversão de Pix</span>
+        </div>
+        <div id="pix-conversion" class="card-value">0%</div>
+        <div class="card-sub">
+          Taxa de aprovação: Pix pagos / Pix gerados (últimos 7 dias).
+        </div>
+        <div class="conversion-bar">
+          <div id="pix-conversion-bar" class="conversion-bar-fill"></div>
+        </div>
+        <div class="conversion-row">
+          <span>Pix gerados: <span id="pix-generated-7d">0</span></span>
+          <span>Pix pagos: <span id="pix-paid-7d">0</span></span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Conversão do checkout (7 dias)</span>
+        </div>
+        <div id="checkout-conversion" class="card-value">0%</div>
+        <div class="card-sub">
+          Conversão aproximada do fluxo completo de checkout nos últimos 7 dias.
+        </div>
+        <div class="conversion-bar">
+          <div id="checkout-conversion-bar" class="conversion-bar-fill"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Terceira linha: comportamento do cliente -->
+    <section class="cards-grid">
+      <div class="card" style="grid-column: 1 / -1">
+        <div class="card-header">
+          <span class="card-title"
+            >Comportamento do cliente (últimos 10 minutos)</span
+          >
+        </div>
+        <div class="card-sub">
+          Como os clientes estão se comportando no checkout em tempo quase real.
         </div>
 
-        <div class="card">
-            <h3>CHECKOUTS INICIADOS HOJE</h3>
-            <div class="value" id="checkoutsToday">–</div>
+        <div class="steps-grid">
+          <div class="step-item">
+            <div class="step-label">Entraram no checkout</div>
+            <div id="step-checkout" class="step-value">0</div>
+          </div>
+          <div class="step-item">
+            <div class="step-label">Geraram Pix</div>
+            <div id="step-pix-generated" class="step-value">0</div>
+          </div>
+          <div class="step-item">
+            <div class="step-label">Pagaram</div>
+            <div id="step-order-paid" class="step-value">0</div>
+          </div>
         </div>
+      </div>
+    </section>
 
-        <div class="card">
-            <h3>VENDAS HOJE (PIX PAGO)</h3>
-            <div class="value" id="salesToday">–</div>
-        </div>
-
-        <div class="card">
-            <h3>CARRINHOS ABANDONADOS</h3>
-            <div class="value" id="abandonedToday">–</div>
-        </div>
-
-        <div class="card">
-            <h3>CONVERSÃO DO CHECKOUT (7 DIAS)</h3>
-            <div class="value" id="checkoutConversion">–%</div>
-            <div class="small">Pedidos pagos ÷ Pix gerados</div>
-        </div>
-
-        <div class="card">
-            <h3>RECEITA (7 DIAS)</h3>
-            <div class="value" id="revenue7d">–</div>
-        </div>
-
-        <div class="card" style="grid-column: span 2">
-            <h3>CONVERSÃO DE PIX</h3>
-            <div class="value" id="pixConversion">–%</div>
-
-            <div class="progress-bar">
-                <div class="progress-fill" id="pixProgress"></div>
-            </div>
-
-            <div class="timeline">
-                <div>Pix gerados<br><span id="pixGenerated">–</span></div>
-                <div>Pix pagos<br><span id="pixPaid">–</span></div>
-            </div>
-        </div>
-
-        <div class="card" style="grid-column: span 2">
-            <h3>COMPORTAMENTO DO CLIENTE (últimos 10 min)</h3>
-
-            <div class="timeline">
-                <div>Entraram<br><strong id="stepCheckout">–</strong></div>
-                <div>Geraram Pix<br><strong id="stepPix">–</strong></div>
-                <div>Pagaram<br><strong id="stepPaid">–</strong></div>
-            </div>
-
-        </div>
-
-    </div>
-
-    <script src="dashboard.js"></script>
-</body>
-
+    <script src="/dashboard.js"></script>
+  </body>
 </html>
