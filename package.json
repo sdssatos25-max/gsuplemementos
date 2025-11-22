@@ -1,11 +1,9 @@
 {
-    "name": "checkout-backend",
-    "version": "1.0.0",
-    "type": "module",
-    "dependencies": {
-        "node-fetch": "^3.3.2",
-        "pg": "^8.11.5",
-    }
-
+  "name": "checkout-backend",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "node-fetch": "^3.3.2",
+    "pg": "^8.11.5"
+  }
 }
-
