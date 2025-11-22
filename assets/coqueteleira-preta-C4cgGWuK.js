@@ -1,0 +1,1 @@
+const e="/assets/whey-protein-duo-D0jhLcAP.png",t="/assets/creatina-duo-wUX2L3TI.png",s="/assets/pre-treino-haze-P0UeXjwZ.png",a="/assets/multivitaminico-multi-BrQcbifh.png",i="/assets/coqueteleira-preta-CQr7pYBd.png";export{i as a,t as c,a as m,s as p,e as w};

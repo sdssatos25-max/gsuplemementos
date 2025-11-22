@@ -1,0 +1,44 @@
+Uri: https://blackgsupplements.vercel.app/
+File Name: C:\Downloaded Web Sites\blackgsupplements.vercel.app\index.htm
+Content Type: text/html
+
+Uri: https://blackgsupplements.vercel.app/assets/index-BczIKYib.css
+File Name: C:\Downloaded Web Sites\blackgsupplements.vercel.app\assets\index-BczIKYib.css
+Content Type: text/css
+
+Uri: https://blackgsupplements.vercel.app/assets/index-BlA7dxeY.js
+File Name: C:\Downloaded Web Sites\blackgsupplements.vercel.app\assets\index-BlA7dxeY.js
+Content Type: application/javascript
+
+Uri: https://blackgsupplements.vercel.app/assets/kit-performance-completo-dBc9tNDA.png
+File Name: C:\Downloaded Web Sites\blackgsupplements.vercel.app\assets\kit-performance-completo-dBc9tNDA.png
+Content Type: image/png
+
+Uri: https://cdn.utmify.com.br/scripts/utms/latest.js
+File Name: C:\Downloaded Web Sites\blackgsupplements.vercel.app\scripts\utms\latest.js
+Content Type: text/javascript
+
+Uri: https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap
+File Name: C:\Downloaded Web Sites\blackgsupplements.vercel.app\css2
+Content Type: text/css
+
+Uri: https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtr6Ew-.ttf
+File Name: C:\Downloaded Web Sites\blackgsupplements.vercel.app\s\montserrat\v31\JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCtr6Ew-.ttf
+Content Type: font/ttf
+
+Uri: https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCu170w-.ttf
+File Name: C:\Downloaded Web Sites\blackgsupplements.vercel.app\s\montserrat\v31\JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCu170w-.ttf
+Content Type: font/ttf
+
+Uri: https://fonts.gstatic.com/s/montserrat/v31/JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM70w-.ttf
+File Name: C:\Downloaded Web Sites\blackgsupplements.vercel.app\s\montserrat\v31\JTUHjIg1_i6t8kCHKm4532VJOt5-QNFgpCuM70w-.ttf
+Content Type: font/ttf
+
+Uri: https://storage.googleapis.com/gpt-engineer-file-uploads/YOv8m9ZQbKUSGKpKAN6edaMcibw1/uploads/1763101480730-transferir (4).png
+File Name: C:\Downloaded Web Sites\blackgsupplements.vercel.app\gpt-engineer-file-uploads\YOv8m9ZQbKUSGKpKAN6edaMcibw1\uploads\1763101480730-transferir (4).png
+Content Type: image/png
+
+Uri: https://www.facebook.com/tr?id=727370486717272&ev=PageView&noscript=1
+File Name: C:\Downloaded Web Sites\blackgsupplements.vercel.app\tr
+Content Type: text/plain
+
