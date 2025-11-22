@@ -1544,6 +1544,33 @@
         let utmifyOrderCreatedAt = null;
         let utmifyTrackingParams = null;
 
+        // ===== ANALYTICS DASHBOARD (Neon/Postgres via /api/track) =====
+        let sessionId = localStorage.getItem('gs_session_id');
+        if (!sessionId) {
+            if (window.crypto && crypto.randomUUID) {
+                sessionId = crypto.randomUUID();
+            } else {
+                sessionId = String(Date.now()) + '-' + Math.random().toString(16).slice(2);
+            }
+            localStorage.setItem('gs_session_id', sessionId);
+        }
+
+        function trackEvent(type, extra) {
+            try {
+                fetch('/api/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type,
+                        session_id: sessionId,
+                        ...(extra || {})
+                    })
+                });
+            } catch (e) {
+                console.warn('Erro ao enviar evento', type, e);
+            }
+        }
+
         // ===== STEPS =====
         function goToStep(stepNumber) {
             const screens = { 1: 'screen-identificacao', 2: 'screen-endereco', 3: 'screen-pagamento', 4: 'screen-pix' };
@@ -1762,6 +1789,12 @@
                         localStorage.setItem('lastOrderAmount', String(tx.amount || PIX_AMOUNT_CENTS));
                     } catch (e) { }
 
+                    // DASHBOARD: pedido pago
+                    trackEvent('order_paid', {
+                        order_id: orderRef,
+                        value_in_cents: tx.amount || PIX_AMOUNT_CENTS
+                    });
+
                     setTimeout(() => {
                         window.location.href = 'pagamento-aprovado.html';
                     }, 1500);
@@ -1789,6 +1822,9 @@
             try {
                 const pedidoId = 'PEDIDO-' + Math.floor(Math.random() * 999999);
                 lastOrderId = pedidoId;
+
+                // DASHBOARD: checkout iniciado
+                trackEvent('checkout_started', { order_id: pedidoId });
 
                 const nome = document.getElementById('nome-completo').value || 'Cliente';
                 const email = document.getElementById('email').value || 'cliente@example.com';
@@ -1869,6 +1905,12 @@
                 utmifyOrderCreatedAt = formatUtc(new Date());
                 utmifySendPix(pedidoId, 'waiting_payment', null);
 
+                // DASHBOARD: Pix gerado
+                trackEvent('pix_generated', {
+                    order_id: pedidoId,
+                    value_in_cents: tx.amount || PIX_AMOUNT_CENTS
+                });
+
                 // FACEBOOK PIXEL: evento custom PixGenerated
                 if (window.fbq) {
                     fbq('trackCustom', 'PixGenerated', {
@@ -1928,6 +1970,9 @@
             const optCredit = document.getElementById('opt-credit');
             const optPix = document.getElementById('opt-pix');
 
+            // DASHBOARD: visita ao abrir o checkout
+            trackEvent('visit', {});
+
             optCredit.addEventListener('click', () => {
                 optCredit.classList.add('active');
                 optPix.classList.remove('active');
@@ -1967,6 +2012,7 @@
             }
         })();
     </script>
+
 
 
 </body>
