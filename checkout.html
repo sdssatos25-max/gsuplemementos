@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Checkout | Pagamento Seguro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Fonte similar -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Lib para gerar QRCode visual -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --blue-header: #00a7f2;
+      --blue-light: #e9f6ff;
+      --blue-dark: #0b3c73;
+      --green-main: #00c853;
+      --green-light: #e9fbf0;
+      --border-soft: #e4e8f0;
+      --text-main: #1c2430;
+      --text-muted: #7b8497;
+      --bg-page: #f4f6fb;
+      --yellow-soft: #fff7e3;
+      --yellow-border: #f3d692;
+      --danger: #ff5252;
+      --radius-card: 18px;
+      --shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg-page);
+      color: var(--text-main);
+    }
+
+    .checkout-shell {
+      max-width: 480px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: #f7f9ff;
+    }
+
+    /* HEADER */
+    .main-header {
+      background: var(--blue-header);
+      padding: 18px 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .main-header img {
+      max-width: 180px;
+      height: auto;
+      display: block;
+    }
+
+    /* CONTEÚDO PRINCIPAL */
+    .checkout-content {
+      flex: 1;
+      padding: 14px 12px 24px 12px;
+    }
+
+    .card {
+      background: #ffffff;
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-soft);
+      padding: 16px 16px 18px 16px;
+      margin-bottom: 12px;
+    }
+
+    .card + .card {
+      margin-top: 10px;
+    }
+
+    /* STEPS */
+    .steps-wrapper {
+      background: #ffffff;
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-soft);
+      padding: 14px 10px 6px 10px;
+      margin-bottom: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .step-indicator {
+      flex: 1;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      position: relative;
+    }
+
+    .step-indicator:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: -5px;
+      top: 16px;
+      width: 10px;
+      height: 2px;
+      background: #d2d7e5;
+    }
+
+    .step-circle {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid #d6dced;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: #9ea6bd;
+      background: #ffffff;
+    }
+
+    .step-label {
+      font-size: 11px;
+      font-weight: 500;
+      color: #9ea6bd;
+    }
+
+    .step-indicator.active .step-circle {
+      border-color: var(--green-main);
+      color: #ffffff;
+      background: var(--green-main);
+    }
+
+    .step-indicator.active .step-label {
+      color: var(--green-main);
+    }
+
+    /* RESUMO DO PEDIDO */
+    .order-summary-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+      margin-bottom: 10px;
+    }
+
+    .order-summary-title {
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .order-summary-total {
+      font-weight: 600;
+      color: var(--text-main);
+      font-size: 13px;
+    }
+
+    .order-summary-total span {
+      font-weight: 700;
+      color: var(--blue-dark);
+    }
+
+    .order-product {
+      display: flex;
+      gap: 10px;
+      padding: 10px 0;
+      border-top: 1px solid var(--border-soft);
+      border-bottom: 1px solid var(--border-soft);
+      margin-bottom: 10px;
+    }
+
+    .product-thumb {
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      background: #f2f4fb;
+      overflow: hidden;
+    }
+
+    .product-thumb img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .product-info {
+      flex: 1;
+      font-size: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .product-name {
+      font-weight: 600;
+      color: var(--text-main);
+      line-height: 1.3;
+    }
+
+    .product-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .order-values {
+      font-size: 12px;
+      color: var(--text-main);
+    }
+
+    .order-values-row {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2px;
+    }
+
+    .order-values-row span:last-child {
+      font-weight: 600;
+    }
+
+    .order-highlight {
+      margin-top: 10px;
+      font-size: 12px;
+      background: var(--green-light);
+      border-radius: 12px;
+      padding: 10px 12px;
+      color: #1a5b38;
+      line-height: 1.4;
+    }
+
+    .order-highlight strong {
+      font-weight: 700;
+    }
+
+    /* BENEFÍCIOS */
+    .benefits {
+      margin-top: 12px;
+      background: #ffffff;
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-soft);
+      padding: 14px 16px;
+      font-size: 12px;
+    }
+
+    .benefit-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .benefit-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 999px;
+      background: #f1f3fb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: var(--blue-dark);
+    }
+
+    .benefit-text-title {
+      font-weight: 600;
+      margin-bottom: 1px;
+    }
+
+    .benefit-text-sub {
+      color: var(--text-muted);
+      font-size: 11px;
+    }
+
+    /* CAMPOS */
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .card-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .form-field {
+      margin-bottom: 10px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .form-input {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      padding: 10px 14px;
+      font-size: 13px;
+      outline: none;
+      background: #f8faff;
+    }
+
+    .form-input::placeholder {
+      color: #c1c8d9;
+    }
+
+    .form-input:focus {
+      border-color: var(--green-main);
+      background: #ffffff;
+    }
+
+    .form-row-2 {
+      display: flex;
+      gap: 8px;
+    }
+
+    /* BOTÕES */
+    .btn-main {
+      width: 100%;
+      border-radius: 999px;
+      border: none;
+      padding: 12px 14px;
+      background: var(--green-main);
+      color: #ffffff;
+      font-weight: 600;
+      font-size: 14px;
+      text-align: center;
+      margin-top: 4px;
+      box-shadow: 0 10px 20px rgba(0, 200, 83, 0.28);
+      cursor: pointer;
+    }
+
+    .btn-main:active {
+      transform: translateY(1px);
+      box-shadow: 0 6px 15px rgba(0, 200, 83, 0.22);
+    }
+
+    .btn-ghost {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      padding: 11px 14px;
+      color: var(--text-main);
+      font-weight: 500;
+      font-size: 13px;
+      text-align: center;
+      margin-top: 8px;
+      background: #ffffff;
+      cursor: pointer;
+    }
+
+    .btn-ghost:active {
+      background: #f3f5fb;
+    }
+
+    /* PAGAMENTO - OPÇÕES */
+    .payment-methods {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .pay-option {
+      flex: 1;
+      border-radius: 14px;
+      border: 1px solid var(--border-soft);
+      padding: 10px 12px;
+      font-size: 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      cursor: pointer;
+      background: #ffffff;
+    }
+
+    .pay-option-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pay-option-circle {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid #d0d6e7;
+      position: relative;
+      margin-left: auto;
+    }
+
+    .pay-option-circle::after {
+      content: '';
+      position: absolute;
+      inset: 3px;
+      border-radius: 50%;
+      background: transparent;
+    }
+
+    .pay-option-label-main {
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    .pay-option-label-sub {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .pay-option.pix-active,
+    .pay-option.active {
+      border-color: var(--green-main);
+      background: #f0fff6;
+    }
+
+    .pay-option.pix-active .pay-option-circle::after,
+    .pay-option.active .pay-option-circle::after {
+      background: var(--green-main);
+    }
+
+    /* CARD PIX */
+    .pix-card {
+      border-radius: 18px;
+      border: 1px solid var(--border-soft);
+      background: #ffffff;
+      padding: 14px 14px 14px 14px;
+      margin-bottom: 8px;
+    }
+
+    .pix-final {
+      margin-top: 4px;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .pix-final .value {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f8c3f;
+    }
+
+    .pix-benefits {
+      margin-top: 12px;
+      border-radius: 14px;
+      background: #f7fbff;
+      padding: 10px 10px 6px 10px;
+      font-size: 11px;
+    }
+
+    .pix-benefit-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .pix-benefit-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: #eef6ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .pix-benefit-text-title {
+      font-weight: 600;
+      margin-bottom: 1px;
+    }
+
+    .pix-benefit-text-sub {
+      color: var(--text-muted);
+      font-size: 10px;
+    }
+
+    /* FOOTER */
+    .footer {
+      padding: 16px 14px 22px 14px;
+      background: #f7f9ff;
+      margin-top: 4px;
+    }
+
+    .footer-title {
+      font-size: 11px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+
+    .footer-icons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-bottom: 10px;
+    }
+
+    .footer-flag {
+      min-width: 36px;
+      padding: 3px 6px;
+      border-radius: 4px;
+      border: 1px solid #dde2f1;
+      font-size: 9px;
+      text-align: center;
+      background: #ffffff;
+    }
+
+    .footer-address {
+      font-size: 9px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 6px;
+    }
+
+    .footer-safe {
+      font-size: 10px;
+      color: #20b144;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-top: 2px;
+    }
+
+    .footer-safe-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #20b144;
+    }
+
+    /* TELAS */
+    .step-screen {
+      display: none;
+    }
+
+    .step-screen.active {
+      display: block;
+    }
+
+    /* MODAL GERANDO QR CODE */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+    }
+
+    .modal-overlay.hidden {
+      display: none;
+    }
+
+    .modal-card {
+      width: 92%;
+      max-width: 420px;
+      background: #ffffff;
+      border-radius: 22px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+      padding: 26px 24px 22px 24px;
+      text-align: center;
+    }
+
+    .modal-spinner {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      border: 4px solid #e3f2ff;
+      border-top-color: #2a9dfb;
+      animation: spin 900ms linear infinite;
+      margin: 0 auto 14px auto;
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-main);
+    }
+
+    .modal-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* TELA FINAL PIX */
+    .pix-final-wrapper {
+      padding-top: 10px;
+    }
+
+    .pix-header-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--text-main);
+    }
+
+    .pix-header-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .pix-header-sub span {
+      color: var(--blue-dark);
+      font-weight: 700;
+    }
+
+    .pix-total-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border-soft);
+    }
+
+    .pix-total-line span:last-child {
+      color: var(--blue-dark);
+      font-weight: 700;
+    }
+
+    .pix-qrcode-card {
+      margin-top: 12px;
+      padding: 16px 12px;
+      border-radius: 16px;
+      border: 1px solid var(--border-soft);
+      background: #ffffff;
+      text-align: center;
+    }
+
+    #pix-qrcode-box {
+      display: inline-block;
+      padding: 8px;
+      border-radius: 10px;
+      background: #ffffff;
+      box-shadow: 0 0 0 1px #e0e5f0;
+      margin-bottom: 10px;
+    }
+
+    .pix-qrcode-hint {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .pix-code-label {
+      margin-top: 14px;
+      font-size: 11px;
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+
+    .pix-code-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .pix-code-input {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      padding: 10px 14px;
+      font-size: 11px;
+      background: #f8faff;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .btn-copy {
+      padding: 0 16px;
+      border-radius: 999px;
+      border: none;
+      background: #05a7ff;
+      color: #ffffff;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+
+    .pix-warning {
+      margin-top: 12px;
+      border-radius: 14px;
+      padding: 10px 12px;
+      background: var(--yellow-soft);
+      border: 1px solid var(--yellow-border);
+      font-size: 11px;
+      color: #b1892f;
+      line-height: 1.4;
+      display: flex;
+      gap: 8px;
+    }
+
+    .pix-warning-icon {
+      width: 18px;
+      height: 18px;
+      border-radius: 999px;
+      background: #ffefc2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    .bank-list-card {
+      margin-top: 12px;
+      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid var(--border-soft);
+      padding: 12px;
+      font-size: 11px;
+    }
+
+    .bank-list-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .bank-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 7px 0;
+      border-bottom: 1px solid #f1f3fb;
+    }
+
+    .bank-row:last-child {
+      border-bottom: none;
+    }
+
+    .bank-left {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .bank-logo-placeholder {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      background: #f2f4fc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #5b6280;
+    }
+
+    .bank-name {
+      font-weight: 500;
+    }
+
+    .bank-note {
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .bank-right {
+      font-size: 9px;
+      color: var(--text-muted);
+    }
+
+    .btn-see-banks {
+      margin-top: 8px;
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid var(--border-soft);
+      padding: 8px;
+      background: #ffffff;
+      font-size: 11px;
+      font-weight: 500;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .how-to-pix-card {
+      margin-top: 12px;
+      border-radius: 14px;
+      background: #ffffff;
+      border: 1px solid var(--border-soft);
+      padding: 12px 14px 10px 14px;
+      font-size: 11px;
+    }
+
+    .how-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .how-list {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .how-item {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 4px;
+      align-items: flex-start;
+    }
+
+    .how-number {
+      width: 16px;
+      height: 16px;
+      border-radius: 999px;
+      border: 1px solid #d2d9ea;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      margin-top: 2px;
+    }
+
+    .how-text {
+      flex: 1;
+    }
+
+    .status-line {
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #f4c95d;
+    }
+
+    @media (min-width: 481px) {
+      body {
+        background: #d9e1f4;
+      }
+      .checkout-shell {
+        margin-top: 18px;
+        margin-bottom: 18px;
+        border-radius: 18px;
+        overflow: hidden;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="checkout-shell">
+    <!-- HEADER -->
+    <header class="main-header">
+      <img src="https://i.ibb.co/P3Rt3jQ/logo-growth-CHR9-V4-Zw.png" alt="Growth Supplements" />
+    </header>
+
+    <!-- CONTEÚDO -->
+    <main class="checkout-content">
+      <!-- STEPPER -->
+      <div class="steps-wrapper" id="stepper">
+        <div class="step-indicator active" data-step-label="1">
+          <div class="step-circle">1</div>
+          <div class="step-label">Identificação</div>
+        </div>
+        <div class="step-indicator" data-step-label="2">
+          <div class="step-circle">2</div>
+          <div class="step-label">Endereço</div>
+        </div>
+        <div class="step-indicator" data-step-label="3">
+          <div class="step-circle">3</div>
+          <div class="step-label">Pagamento</div>
+        </div>
+      </div>
+
+      <!-- STEP 1: IDENTIFICAÇÃO -->
+      <section id="screen-identificacao" class="step-screen active">
+        <div class="card">
+          <div class="order-summary-header">
+            <div class="order-summary-title">Resumo do Pedido</div>
+            <div class="order-summary-total">
+              Total
+              <span id="summary-total">R$ 129,97</span>
+            </div>
+          </div>
+
+          <div class="order-product">
+            <div class="product-thumb">
+              <img src="https://i.ibb.co/Fbp8KD0B/019a803d-73f5-70ff-b4dd-4b3c1e780cbf.png" alt="Produto" />
+            </div>
+            <div class="product-info">
+              <div class="product-name">
+                Combo Promocional - Black Friday
+              </div>
+              <div class="product-line">
+                <span>Qtd: 1</span>
+                <span><strong>R$ 129,97</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="order-values">
+            <div class="order-values-row">
+              <span>Subtotal</span>
+              <span>R$ 129,97</span>
+            </div>
+            <div class="order-values-row">
+              <span>Frete</span>
+              <span>Grátis</span>
+            </div>
+          </div>
+
+          <div class="order-highlight">
+            <strong>Você está adquirindo:</strong><br />
+            2 Whey 1KG + 2 Creatinas 250g + Pré Treino Haze 300g + Multivitamínico 120caps + Coqueteleira Preta 600ml
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Dados pessoais</div>
+          <div class="card-subtitle">
+            Utilizaremos seu e-mail para identificar seu perfil, histórico de compra, notificação de pedidos e carrinho de compras.
+          </div>
+
+          <div class="form-field">
+            <input id="nome-completo" class="form-input" type="text" placeholder="Nome completo" />
+          </div>
+
+          <div class="form-field">
+            <input id="email" class="form-input" type="email" placeholder="E-mail" />
+          </div>
+
+          <div class="form-field form-row-2">
+            <input class="form-input" style="max-width: 80px; text-align:center;" type="text" value="+55" readonly />
+            <input id="whatsapp" class="form-input" type="tel" placeholder="(11) 96123-4567" />
+          </div>
+
+          <button class="btn-main" onclick="goToStep(2)">
+            Próximo
+          </button>
+        </div>
+
+        <!-- Benefícios -->
+        <div class="benefits">
+          <div class="benefit-item">
+            <div class="benefit-icon">🚚</div>
+            <div>
+              <div class="benefit-text-title">Frete Grátis</div>
+              <div class="benefit-text-sub">Para todo o Brasil em compras acima de R$ 59,90</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-icon">🔒</div>
+            <div>
+              <div class="benefit-text-title">Compra Segura</div>
+              <div class="benefit-text-sub">Seus dados protegidos e pagamento seguro</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-icon">⚡</div>
+            <div>
+              <div class="benefit-text-title">Entrega Rápida</div>
+              <div class="benefit-text-sub">Enviamos em até 24 horas após a confirmação</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2: ENDEREÇO -->
+      <section id="screen-endereco" class="step-screen">
+        <div class="card">
+          <div class="order-summary-header">
+            <div class="order-summary-title">Resumo do Pedido</div>
+            <div class="order-summary-total">
+              Total
+              <span id="summary-total-2">R$ 129,97</span>
+            </div>
+          </div>
+
+          <div class="order-product">
+            <div class="product-thumb">
+              <img src="https://i.ibb.co/Fbp8KD0B/019a803d-73f5-70ff-b4dd-4b3c1e780cbf.png" alt="Produto" />
+            </div>
+            <div class="product-info">
+              <div class="product-name">
+                Combo Promocional - Black Friday
+              </div>
+              <div class="product-line">
+                <span>Qtd: 1</span>
+                <span><strong>R$ 129,97</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="order-highlight">
+            <strong>Você está adquirindo:</strong><br />
+            2 Whey 1KG + 2 Creatinas 250g + Pré Treino Haze 300g + Multivitamínico 120caps + Coqueteleira Preta 600ml
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Endereço de entrega</div>
+
+          <div class="form-field">
+            <input id="cep" class="form-input" type="text" placeholder="CEP" />
+          </div>
+          <div class="form-field">
+            <input id="rua" class="form-input" type="text" placeholder="Rua, Avenida, etc." />
+          </div>
+          <div class="form-row-2 form-field">
+            <input id="numero" class="form-input" type="text" placeholder="Número" />
+            <input id="complemento" class="form-input" type="text" placeholder="Apto, Bloco, etc." />
+          </div>
+          <div class="form-field">
+            <input id="bairro" class="form-input" type="text" placeholder="Bairro" />
+          </div>
+          <div class="form-row-2 form-field">
+            <input id="cidade" class="form-input" type="text" placeholder="Cidade" />
+            <input id="estado" class="form-input" type="text" placeholder="UF" />
+          </div>
+
+          <div class="pix-benefits" style="margin-top:6px;">
+            <div class="pix-benefit-line">
+              <div class="pix-benefit-icon">🚚</div>
+              <div>
+                <div class="pix-benefit-text-title">Frete Grátis</div>
+                <div class="pix-benefit-text-sub">3 a 7 dias úteis — Grátis</div>
+              </div>
+            </div>
+          </div>
+
+          <button class="btn-ghost" onclick="goToStep(1)">Voltar</button>
+          <button class="btn-main" onclick="goToStep(3)">Ir para Pagamento</button>
+        </div>
+
+        <div class="benefits">
+          <div class="benefit-item">
+            <div class="benefit-icon">🚚</div>
+            <div>
+              <div class="benefit-text-title">Frete Grátis</div>
+              <div class="benefit-text-sub">Para todo o Brasil em compras acima de R$ 59,90</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-icon">🔒</div>
+            <div>
+              <div class="benefit-text-title">Compra Segura</div>
+              <div class="benefit-text-sub">Seus dados protegidos e pagamento seguro</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-icon">⚡</div>
+            <div>
+              <div class="benefit-text-title">Entrega Rápida</div>
+              <div class="benefit-text-sub">Enviamos em até 24 horas após a confirmação</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 3: PAGAMENTO -->
+      <section id="screen-pagamento" class="step-screen">
+        <div class="card">
+          <div class="order-summary-header">
+            <div class="order-summary-title">Resumo do Pedido</div>
+            <div class="order-summary-total">
+              Total
+              <span id="summary-total-3">R$ 129,97</span>
+            </div>
+          </div>
+
+          <div class="order-product">
+            <div class="product-thumb">
+              <img src="https://i.ibb.co/Fbp8KD0B/019a803d-73f5-70ff-b4dd-4b3c1e780cbf.png" alt="Produto" />
+            </div>
+            <div class="product-info">
+              <div class="product-name">
+                Combo Promocional - Black Friday
+              </div>
+              <div class="product-line">
+                <span>Qtd: 1</span>
+                <span><strong>R$ 129,97</strong></span>
+              </div>
+            </div>
+          </div>
+
+          <div class="order-values">
+            <div class="order-values-row">
+              <span>Subtotal</span>
+              <span>R$ 129,97</span>
+            </div>
+            <div class="order-values-row">
+              <span>Frete</span>
+              <span>Grátis</span>
+            </div>
+            <div class="order-values-row">
+              <span>Total no Pix</span>
+              <span id="pix-total-mini"><strong>R$ 129,97</strong></span>
+            </div>
+          </div>
+
+          <div class="order-highlight">
+            <strong>Você está adquirindo:</strong><br />
+            2 Whey 1KG + 2 Creatinas 250g + Pré Treino Haze 300g + Multivitamínico 120caps + Coqueteleira Preta 600ml
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Pagamento</div>
+          <div class="card-subtitle">Escolha a forma de pagamento</div>
+
+          <div class="payment-methods">
+            <div class="pay-option" id="opt-credit">
+              <div class="pay-option-header">
+                <div>💳</div>
+                <div>
+                  <div class="pay-option-label-main">Cartão de Crédito</div>
+                  <div class="pay-option-label-sub">Parcele em até 12x</div>
+                </div>
+                <div class="pay-option-circle"></div>
+              </div>
+            </div>
+
+            <div class="pay-option pix-active active" id="opt-pix">
+              <div class="pay-option-header">
+                <div>⚡</div>
+                <div>
+                  <div class="pay-option-label-main">PIX</div>
+                  <div class="pay-option-label-sub">Pagamento instantâneo</div>
+                </div>
+                <div class="pay-option-circle"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- CARD PAGAMENTO VIA PIX -->
+          <div class="pix-card">
+            <div class="card-title" style="margin-bottom:6px;">Pagamento via PIX</div>
+
+            <div class="pix-final">
+              <div class="label">Valor a pagar:</div>
+              <div class="value" id="pix-total-main">R$ 129,97</div>
+            </div>
+
+            <div class="pix-benefits">
+              <div class="pix-benefit-line">
+                <div class="pix-benefit-icon">⚡</div>
+                <div>
+                  <div class="pix-benefit-text-title">Aprovação instantânea</div>
+                  <div class="pix-benefit-text-sub">Liberação imediata do pedido</div>
+                </div>
+              </div>
+              <div class="pix-benefit-line">
+                <div class="pix-benefit-icon">💸</div>
+                <div>
+                  <div class="pix-benefit-text-title">Sem custos extras</div>
+                  <div class="pix-benefit-text-sub">Transferência gratuita</div>
+                </div>
+              </div>
+              <div class="pix-benefit-line">
+                <div class="pix-benefit-icon">🛡️</div>
+                <div>
+                  <div class="pix-benefit-text-title">100% Seguro</div>
+                  <div class="pix-benefit-text-sub">Desenvolvido pelo Banco Central</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-field" style="margin-top:12px;">
+              <div class="form-label">CPF do pagador</div>
+              <input id="cpf-pagador" class="form-input" type="text" placeholder="CPF" />
+            </div>
+
+            <button class="btn-main" onclick="gerarPix()">
+              Gerar QR Code PIX
+            </button>
+
+            <button class="btn-ghost" onclick="goToStep(2)">
+              Voltar
+            </button>
+          </div>
+        </div>
+
+        <div class="benefits">
+          <div class="benefit-item">
+            <div class="benefit-icon">🚚</div>
+            <div>
+              <div class="benefit-text-title">Frete Grátis</div>
+              <div class="benefit-text-sub">Para todo o Brasil em compras acima de R$ 59,90</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-icon">🔒</div>
+            <div>
+              <div class="benefit-text-title">Compra Segura</div>
+              <div class="benefit-text-sub">Seus dados protegidos e pagamento seguro</div>
+            </div>
+          </div>
+          <div class="benefit-item">
+            <div class="benefit-icon">⚡</div>
+            <div>
+              <div class="benefit-text-title">Entrega Rápida</div>
+              <div class="benefit-text-sub">Enviamos em até 24 horas após a confirmação</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 4: TELA FINAL DO PIX (QR CODE) -->
+      <section id="screen-pix" class="step-screen">
+        <div class="card pix-final-wrapper">
+          <div class="pix-header-title">Já é quase seu...</div>
+          <div class="pix-header-sub">
+            Pague seu Pix dentro de
+            <span id="pix-timer">15:00</span>
+            para garantir sua compra.
+          </div>
+
+          <div class="pix-total-line">
+            <span>Total do pedido:</span>
+            <span id="pix-total-final">R$ 129,97</span>
+          </div>
+
+          <div class="pix-qrcode-card">
+            <div id="pix-qrcode-box">
+              <div id="pix-qrcode"></div>
+            </div>
+            <div class="pix-qrcode-hint">Aponte a câmera do seu celular</div>
+
+            <div class="pix-code-label">Código Pix</div>
+            <div class="pix-code-row">
+              <div id="pix-code-display" class="pix-code-input">Carregando código...</div>
+              <button class="btn-copy" onclick="copiarCodigoPix()">Copiar</button>
+            </div>
+
+            <div class="pix-warning">
+              <div class="pix-warning-icon">!</div>
+              <div>
+                Os bancos reforçaram a segurança do Pix e podem exibir alertas
+                preventivos durante o pagamento. Fique tranquilo — sua transação
+                é segura e está totalmente protegida.
+              </div>
+            </div>
+          </div>
+
+          <div class="bank-list-card">
+            <div class="bank-list-title">Pague com seu banco:</div>
+
+            <div class="bank-row">
+              <div class="bank-left">
+                <div class="bank-logo-placeholder">Nu</div>
+                <div>
+                  <div class="bank-name">Nubank</div>
+                  <div class="bank-note">Pode precisar criar manualmente</div>
+                </div>
+              </div>
+              <div class="bank-right">Pix</div>
+            </div>
+
+            <div class="bank-row">
+              <div class="bank-left">
+                <div class="bank-logo-placeholder">in</div>
+                <div>
+                  <div class="bank-name">Banco Inter</div>
+                  <div class="bank-note">Pode precisar criar manualmente</div>
+                </div>
+              </div>
+              <div class="bank-right">Pix</div>
+            </div>
+
+            <div class="bank-row">
+              <div class="bank-left">
+                <div class="bank-logo-placeholder">it</div>
+                <div>
+                  <div class="bank-name">Itaú</div>
+                  <div class="bank-note">Pode precisar criar manualmente</div>
+                </div>
+              </div>
+              <div class="bank-right">Pix</div>
+            </div>
+
+            <div class="bank-row">
+              <div class="bank-left">
+                <div class="bank-logo-placeholder">bd</div>
+                <div>
+                  <div class="bank-name">Bradesco</div>
+                  <div class="bank-note">Pode precisar criar manualmente</div>
+                </div>
+              </div>
+              <div class="bank-right">Pix</div>
+            </div>
+
+            <div class="bank-row">
+              <div class="bank-left">
+                <div class="bank-logo-placeholder">BB</div>
+                <div>
+                  <div class="bank-name">Banco do Brasil</div>
+                  <div class="bank-note">Pode precisar criar manualmente</div>
+                </div>
+              </div>
+              <div class="bank-right">Pix</div>
+            </div>
+
+            <button class="btn-see-banks">Ver todos os bancos ▾</button>
+          </div>
+
+          <div class="how-to-pix-card">
+            <div class="how-title">Como pagar o Pix:</div>
+            <ul class="how-list">
+              <li class="how-item">
+                <div class="how-number">1</div>
+                <div class="how-text">Clique em copiar o código Pix logo acima.</div>
+              </li>
+              <li class="how-item">
+                <div class="how-number">2</div>
+                <div class="how-text">Acesse o app do seu banco.</div>
+              </li>
+              <li class="how-item">
+                <div class="how-number">3</div>
+                <div class="how-text">Vá até a opção Pix.</div>
+              </li>
+              <li class="how-item">
+                <div class="how-number">4</div>
+                <div class="how-text">Escolha a opção “COPIAR E COLAR”.</div>
+              </li>
+              <li class="how-item">
+                <div class="how-number">5</div>
+                <div class="how-text">Insira o código copiado e finalize seu pagamento.</div>
+              </li>
+            </ul>
+
+            <div class="status-line">
+              <div class="status-dot"></div>
+              <span id="pix-status-text">Aguardando pagamento...</span>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+      <div class="footer-title">Formas de Pagamento</div>
+      <div class="footer-icons">
+        <div class="footer-flag">VISA</div>
+        <div class="footer-flag">MASTERCARD</div>
+        <div class="footer-flag">ELO</div>
+        <div class="footer-flag">AMEX</div>
+        <div class="footer-flag">HIPER</div>
+        <div class="footer-flag">PIX</div>
+        <div class="footer-flag">BOLETO</div>
+      </div>
+
+      <div class="footer-address">
+        G Suplementos Av. Wilson Lemos, 2850, Galpão 18, 19, 22, 23, 24 e 27, Santa Luzia - Tijucas - SC - CEP 88200-958<br />
+        CNPJ: 10.832.644/0001-08 · Whatsapp: (11) 3003-3994 · Email: suporte@gsuplementos.com
+      </div>
+
+      <div class="footer-safe">
+        <div class="footer-safe-dot"></div>
+        <span>Site Seguro</span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- MODAL DE CARREGAMENTO -->
+  <div id="modal-loading" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-spinner"></div>
+      <div class="modal-title">Aguarde enquanto geramos o QR Code</div>
+      <div class="modal-sub">Não feche ou atualize a página</div>
+    </div>
+  </div>
+
+  <script>
+    // ===== VAR GLOBAIS =====
+    const PIX_AMOUNT_CENTS = 12997; // 129,97 reais
+    let pixCodeGlobal = '';
+    let pixTimerInterval = null;
+
+    // ===== STEPS =====
+    function goToStep(stepNumber) {
+      const screens = {
+        1: 'screen-identificacao',
+        2: 'screen-endereco',
+        3: 'screen-pagamento',
+        4: 'screen-pix',
+      };
+
+      document.querySelectorAll('.step-screen').forEach(s => s.classList.remove('active'));
+      document.getElementById(screens[stepNumber]).classList.add('active');
+
+      document.querySelectorAll('.step-indicator').forEach(el => {
+        const label = Number(el.getAttribute('data-step-label'));
+        if (label <= 3) {
+          if (label === stepNumber) {
+            el.classList.add('active');
+          } else {
+            el.classList.remove('active');
+          }
+        }
+      });
+    }
+
+    // ===== FORMATADORES =====
+    function formatPhone(value) {
+      const digits = value.replace(/\D/g, '').slice(0, 11);
+      let result = digits;
+
+      if (digits.length > 2 && digits.length <= 7) {
+        result = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+      } else if (digits.length > 7 && digits.length <= 10) {
+        result = `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+      } else if (digits.length === 11) {
+        result = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+      } else if (digits.length <= 2) {
+        result = digits ? `(${digits}` : '';
+      }
+
+      return result;
+    }
+
+    function formatCPF(value) {
+      const digits = value.replace(/\D/g, '').slice(0, 11);
+      let v = digits;
+
+      if (digits.length > 3 && digits.length <= 6) {
+        v = `${digits.slice(0, 3)}.${digits.slice(3)}`;
+      } else if (digits.length > 6 && digits.length <= 9) {
+        v = `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+      } else if (digits.length > 9) {
+        v = `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9)}`;
+      }
+
+      return v;
+    }
+
+    function formatCEP(value) {
+      const digits = value.replace(/\D/g, '').slice(0, 8);
+      if (digits.length <= 5) return digits;
+      return `${digits.slice(0, 5)}-${digits.slice(5)}`;
+    }
+
+    function formatarValorBRLcentavos(centavos) {
+      const valor = centavos / 100;
+      return valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    }
+
+    // ===== CEP VIA VIACEP =====
+    async function buscarCEP(cepInput) {
+      const cepCampo = document.getElementById('cep');
+      const rua = document.getElementById('rua');
+      const bairro = document.getElementById('bairro');
+      const cidade = document.getElementById('cidade');
+      const estado = document.getElementById('estado');
+
+      const cep = cepCampo.value.replace(/\D/g, '');
+
+      if (cep.length !== 8) {
+        return;
+      }
+
+      try {
+        const resp = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+        const data = await resp.json();
+
+        if (data.erro) {
+          alert('CEP não encontrado. Verifique o número digitado.');
+          return;
+        }
+
+        rua.value = data.logradouro || '';
+        bairro.value = data.bairro || '';
+        cidade.value = data.localidade || '';
+        estado.value = data.uf || '';
+      } catch (e) {
+        console.error('Erro ao buscar CEP:', e);
+      }
+    }
+
+    // ===== PIX =====
+    function iniciarPixTimer(segundos) {
+      if (pixTimerInterval) clearInterval(pixTimerInterval);
+
+      let restante = segundos;
+      const el = document.getElementById('pix-timer');
+
+      function render() {
+        const m = String(Math.floor(restante / 60)).padStart(2, '0');
+        const s = String(restante % 60).padStart(2, '0');
+        el.innerText = `${m}:${s}`;
+      }
+
+      render();
+
+      pixTimerInterval = setInterval(() => {
+        restante--;
+        if (restante <= 0) {
+          clearInterval(pixTimerInterval);
+          el.innerText = '00:00';
+          document.getElementById('pix-status-text').innerText =
+            'Tempo expirado. Gere um novo código Pix para concluir o pagamento.';
+          return;
+        }
+        render();
+      }, 1000);
+    }
+
+    async function gerarPix() {
+      const modal = document.getElementById('modal-loading');
+      modal.classList.remove('hidden');
+
+      try {
+        const publicKey = 'pk_2pPJpLKiqt9pOXEq6lkx6X-5B8yenoCAoO1LvzsJxnK-70r6';
+        const secretKey = 'sk_w4vxE_63mIwGoCZNBRNu8vBvfBPy2KlCkYa9BnaH-Ze5_5ia';
+        const auth = 'Basic ' + btoa(publicKey + ':' + secretKey);
+
+        const pedidoId = 'PEDIDO-' + Math.floor(Math.random() * 999999);
+        const nome = document.getElementById('nome-completo').value || 'Cliente';
+        const email = document.getElementById('email').value || 'cliente@example.com';
+        const telefone = document.getElementById('whatsapp').value || '';
+        const telefoneDigits = telefone.replace(/\D/g, '');
+        const cpf = document.getElementById('cpf-pagador').value || '';
+        const cpfDigits = cpf.replace(/\D/g, '');
+
+        const cep = document.getElementById('cep').value.replace(/\D/g, '');
+        const rua = document.getElementById('rua').value;
+        const numero = document.getElementById('numero').value;
+        const complemento = document.getElementById('complemento').value;
+        const bairro = document.getElementById('bairro').value;
+        const cidade = document.getElementById('cidade').value;
+        const estado = document.getElementById('estado').value;
+
+        const payload = {
+          amount: PIX_AMOUNT_CENTS,
+          paymentMethod: 'pix',
+          postbackUrl: 'https://seusite.com/api/blackcat/webhook', // ajuste depois no seu backend se quiser
+          externalRef: pedidoId,
+          metadata: `{ orderId: "${pedidoId}" }`,
+          customer: {
+            name: nome,
+            email: email,
+            phone: telefoneDigits,
+            birthdate: null,
+            document: {
+              type: 'cpf',
+              number: cpfDigits,
+            },
+            address: {
+              street: rua,
+              streetNumber: numero,
+              complement: complemento,
+              zipCode: cep,
+              neighborhood: bairro,
+              city: cidade,
+              state: estado,
+              country: 'BR',
+            },
+          },
+          items: [
+            {
+              title: 'Combo Promocional - Black Friday',
+              quantity: 1,
+              tangible: true,
+              unitPrice: PIX_AMOUNT_CENTS,
+              externalRef: 'item-1',
+            },
+          ],
+        };
+
+        const resp = await fetch('https://api.blackcatpagamentos.com/v1/transactions', {
+          method: 'POST',
+          headers: {
+            Authorization: auth,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        });
+
+        const data = await resp.json();
+
+        if (!resp.ok) {
+          console.error('Erro BlackCat:', data);
+          alert('Erro ao gerar Pix. Verifique suas chaves e tente novamente.');
+          modal.classList.add('hidden');
+          return;
+        }
+
+        const tx = data.data || data;
+        const pixInfo = tx.pix || {};
+        const pixCode = pixInfo.qrcode;
+
+        if (!pixCode) {
+          alert('Não foi possível obter o código Pix da transação.');
+          modal.classList.add('hidden');
+          return;
+        }
+
+        pixCodeGlobal = pixCode;
+
+        const valorFormatado = formatarValorBRLcentavos(tx.amount || PIX_AMOUNT_CENTS);
+        document.getElementById('pix-total-final').innerText = valorFormatado;
+        document.getElementById('pix-total-main').innerText = valorFormatado;
+        document.getElementById('pix-total-mini').innerHTML = '<strong>' + valorFormatado + '</strong>';
+
+        document.getElementById('pix-code-display').innerText = pixCode;
+
+        const qrContainer = document.getElementById('pix-qrcode');
+        qrContainer.innerHTML = '';
+        new QRCode(qrContainer, {
+          text: pixCode,
+          width: 170,
+          height: 170,
+        });
+
+        goToStep(4);
+        iniciarPixTimer(15 * 60);
+      } catch (err) {
+        console.error(err);
+        alert('Erro inesperado ao gerar Pix. Tente novamente.');
+      } finally {
+        modal.classList.add('hidden');
+      }
+    }
+
+    function copiarCodigoPix() {
+      if (!pixCodeGlobal) {
+        alert('Código Pix ainda não carregado.');
+        return;
+      }
+
+      navigator.clipboard
+        .writeText(pixCodeGlobal)
+        .then(() => {
+          alert('Código Pix copiado com sucesso!');
+        })
+        .catch(() => {
+          const temp = document.createElement('textarea');
+          temp.value = pixCodeGlobal;
+          document.body.appendChild(temp);
+          temp.select();
+          document.execCommand('copy');
+          document.body.removeChild(temp);
+          alert('Código Pix copiado com sucesso!');
+        });
+    }
+
+    // ===== INIT LISTENERS =====
+    (function init() {
+      const optCredit = document.getElementById('opt-credit');
+      const optPix = document.getElementById('opt-pix');
+
+      optCredit.addEventListener('click', () => {
+        optCredit.classList.add('active');
+        optPix.classList.remove('active', 'pix-active');
+        alert('Exemplo: aqui entraria o formulário de cartão de crédito.\nNo momento o fluxo está focado em Pix.');
+      });
+
+      optPix.addEventListener('click', () => {
+        optPix.classList.add('active', 'pix-active');
+        optCredit.classList.remove('active');
+      });
+
+      // Máscara telefone
+      const telInput = document.getElementById('whatsapp');
+      telInput.addEventListener('input', (e) => {
+        e.target.value = formatPhone(e.target.value);
+      });
+
+      // Máscara CPF
+      const cpfInput = document.getElementById('cpf-pagador');
+      cpfInput.addEventListener('input', (e) => {
+        e.target.value = formatCPF(e.target.value);
+      });
+
+      // CEP mascarado + busca
+      const cepInput = document.getElementById('cep');
+      cepInput.addEventListener('input', (e) => {
+        e.target.value = formatCEP(e.target.value);
+      });
+      cepInput.addEventListener('blur', buscarCEP);
+    })();
+  </script>
+</body>
+</html>
