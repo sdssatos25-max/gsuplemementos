@@ -1,37 +1,37 @@
 // api/utmify.js
-// Endpoint para enviar o pedido para a Utmify sem expor o token no front
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    res.status(405).json({ error: 'Método não permitido' });
-    return;
+    return res.status(405).json({ error: 'Método não permitido' });
   }
 
   try {
-    const body = req.body;
-
     const utmifyToken = process.env.UTMIFY_API_TOKEN;
-    const utmifyEndpoint = 'https://api.utmify.com.br/api-credentials/orders';
 
     if (!utmifyToken) {
-      res.status(500).json({ error: 'Token da Utmify não configurado no servidor' });
-      return;
+      return res.status(500).json({ error: 'Token da Utmify não configurado' });
     }
 
-    const resp = await fetch(utmifyEndpoint, {
+    const payload = req.body;
+
+    const response = await fetch('https://api.utmify.com.br/api-credentials/orders', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-api-token': utmifyToken
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(payload)
     });
 
-    const data = await resp.json();
+    const result = await response.json();
 
-    res.status(resp.status).json(data);
-  } catch (err) {
-    console.error('Erro em /api/utmify:', err);
-    res.status(500).json({ error: 'Erro ao enviar pedido para Utmify' });
+    return res.status(response.status).json(result);
+
+  } catch (error) {
+    console.error('ERRO UTMIFY:', error);
+    return res.status(500).json({
+      error: 'Erro ao enviar pedido para Utmify',
+      details: String(error)
+    });
   }
-};
+}
