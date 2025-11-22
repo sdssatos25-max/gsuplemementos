@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <title>Painel – GSuplementos</title>
+  <title>Dashboard do Checkout</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     * {
@@ -162,7 +162,6 @@
     }
 
     /* COMPORTAMENTO DO CLIENTE */
-
     .section-title {
       font-size: 14px;
       font-weight: 600;
@@ -269,7 +268,7 @@
       <div class="card">
         <div class="card-title">
           <span class="status-dot green"></span>
-          Visitantes ativos agora
+          VISITANTES ATIVOS AGORA
         </div>
         <div class="card-main">
           <div class="card-value" id="visitors-now">–</div>
@@ -286,7 +285,7 @@
       <div class="card">
         <div class="card-title">
           <span class="status-dot purple"></span>
-          Checkouts iniciados hoje
+          CHECKOUTS INICIADOS HOJE
         </div>
         <div class="card-main">
           <div class="card-value" id="checkouts-started">–</div>
@@ -299,7 +298,7 @@
       <!-- Vendas hoje -->
       <div class="card">
         <div class="card-title">
-          Vendas hoje (Pix aprovado)
+          VENDAS HOJE (PIX APROVADO)
         </div>
         <div class="card-main">
           <div class="card-value" id="sales-today">–</div>
@@ -312,7 +311,7 @@
       <!-- Carrinhos abandonados hoje -->
       <div class="card">
         <div class="card-title">
-          Carrinhos abandonados hoje
+          CARRINHOS ABANDONADOS HOJE
         </div>
         <div class="card-main">
           <div class="card-value" id="abandoned-carts">–</div>
@@ -328,7 +327,7 @@
       <!-- Conversão geral (7 dias) -->
       <div class="card">
         <div class="card-title">
-          Conversão do checkout (últimos 7 dias)
+          CONVERSÃO DO CHECKOUT (ÚLTIMOS 7 DIAS)
         </div>
         <div class="card-main">
           <div class="card-value" id="conversion-7d">–</div>
@@ -342,7 +341,7 @@
       <!-- Pedidos pagos 7d -->
       <div class="card">
         <div class="card-title">
-          Pedidos pagos (últimos 7 dias)
+          PEDIDOS PAGOS (ÚLTIMOS 7 DIAS)
         </div>
         <div class="card-main">
           <div class="card-value" id="orders-7d">–</div>
@@ -355,7 +354,7 @@
       <!-- Receita 7d -->
       <div class="card">
         <div class="card-title">
-          Receita (últimos 7 dias)
+          RECEITA (ÚLTIMOS 7 DIAS)
         </div>
         <div class="card-main">
           <div class="card-value" id="revenue-7d">–</div>
@@ -455,46 +454,48 @@
 
   <script>
     function formatTime(date) {
-      const pad = (n) => String(n).padStart(2, '0');
+      const pad = (n) => String(n).padStart(2, "0");
       return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
         date.getSeconds()
       )}`;
     }
 
     async function fetchMetrics() {
-      const errorBanner = document.getElementById('error-banner');
+      const errorBanner = document.getElementById("error-banner");
 
       try {
-        const resp = await fetch('/api/metrics');
+        const resp = await fetch("/api/metrics");
         if (!resp.ok) {
-          throw new Error('Erro HTTP ' + resp.status);
+          throw new Error("Erro HTTP " + resp.status);
         }
         const data = await resp.json();
 
         // Cards principais
-        document.getElementById('visitors-now').textContent =
-          typeof data.visitorsNow === 'number' ? data.visitorsNow : '0';
+        document.getElementById("visitors-now").textContent =
+          typeof data.visitorsNow === "number" ? data.visitorsNow : "0";
 
-        document.getElementById('checkouts-started').textContent =
-          typeof data.checkoutsStarted === 'number' ? data.checkoutsStarted : '0';
+        document.getElementById("checkouts-started").textContent =
+          typeof data.checkoutsStarted === "number"
+            ? data.checkoutsStarted
+            : "0";
 
-        document.getElementById('sales-today').textContent =
-          data.salesTodayBRL || 'R$ 0,00';
+        document.getElementById("sales-today").textContent =
+          data.salesTodayBRL || "R$ 0,00";
 
-        document.getElementById('abandoned-carts').textContent =
-          typeof data.abandonedCarts === 'number'
+        document.getElementById("abandoned-carts").textContent =
+          typeof data.abandonedCarts === "number"
             ? data.abandonedCarts
-            : '0';
+            : "0";
 
         // 7 dias
-        document.getElementById('conversion-7d').textContent =
-          typeof data.conversion7d === 'number' ? data.conversion7d : '0';
+        document.getElementById("conversion-7d").textContent =
+          typeof data.conversion7d === "number" ? data.conversion7d : "0";
 
-        document.getElementById('orders-7d').textContent =
-          typeof data.orders7d === 'number' ? data.orders7d : '0';
+        document.getElementById("orders-7d").textContent =
+          typeof data.orders7d === "number" ? data.orders7d : "0";
 
-        document.getElementById('revenue-7d').textContent =
-          data.revenue7dBRL || 'R$ 0,00';
+        document.getElementById("revenue-7d").textContent =
+          data.revenue7dBRL || "R$ 0,00";
 
         // Conversão de Pix
         if (data.pixConversion) {
@@ -502,44 +503,44 @@
           const gen = data.pixConversion.generated7d ?? 0;
           const paid = data.pixConversion.paid7d ?? 0;
 
-          document.getElementById('pix-conversion-percent').textContent = pc;
+          document.getElementById("pix-conversion-percent").textContent = pc;
           document.getElementById(
-            'pix-conversion-text'
+            "pix-conversion-text"
           ).textContent = `Baseado em ${gen} Pix gerados e ${paid} Pix pagos nos últimos 7 dias.`;
 
           document.getElementById(
-            'pix-generated-label'
+            "pix-generated-label"
           ).textContent = `Pix gerados: ${gen}`;
           document.getElementById(
-            'pix-paid-label'
+            "pix-paid-label"
           ).textContent = `Pix pagos: ${paid}`;
 
-          const bar = document.getElementById('pix-bar-fill');
-          bar.style.width = pc > 100 ? '100%' : pc + '%';
+          const bar = document.getElementById("pix-bar-fill");
+          bar.style.width = pc > 100 ? "100%" : pc + "%";
         }
 
         // COMPORTAMENTO DO CLIENTE – últimos 10 min
         if (data.funnelLast10) {
-          document.getElementById('funnel-checkout').textContent =
-            data.funnelLast10.checkoutViews ?? '0';
-          document.getElementById('funnel-personal').textContent =
-            data.funnelLast10.personalData ?? '0';
-          document.getElementById('funnel-payment').textContent =
-            data.funnelLast10.paymentStep ?? '0';
-          document.getElementById('funnel-purchased').textContent =
-            data.funnelLast10.purchased ?? '0';
+          document.getElementById("funnel-checkout").textContent =
+            data.funnelLast10.checkoutViews ?? "0";
+          document.getElementById("funnel-personal").textContent =
+            data.funnelLast10.personalData ?? "0";
+          document.getElementById("funnel-payment").textContent =
+            data.funnelLast10.paymentStep ?? "0";
+          document.getElementById("funnel-purchased").textContent =
+            data.funnelLast10.purchased ?? "0";
         }
 
         // Atualiza horário
-        document.getElementById('last-update').textContent =
-          'Atualizado às ' + formatTime(new Date());
+        document.getElementById("last-update").textContent =
+          "Atualizado às " + formatTime(new Date());
 
-        errorBanner.style.display = 'none';
+        errorBanner.style.display = "none";
       } catch (err) {
-        console.error('Erro ao carregar métricas:', err);
+        console.error("Erro ao carregar métricas:", err);
         errorBanner.textContent =
-          'Erro ao carregar métricas do painel. Verifique se /api/metrics está funcionando.';
-        errorBanner.style.display = 'block';
+          "Erro ao carregar métricas do painel. Verifique se /api/metrics está funcionando.";
+        errorBanner.style.display = "block";
       }
     }
 
@@ -547,33 +548,6 @@
     fetchMetrics();
     // Atualização automática (5 segundos)
     setInterval(fetchMetrics, 5000);
-
-<script>
-async function loadMetrics() {
-  try {
-    const res = await fetch('/api/metrics');
-    const data = await res.json();
-
-    document.getElementById('visitors-active').innerText = data.activeVisitors;
-    document.getElementById('checkouts-today').innerText = data.checkoutsToday;
-    document.getElementById('sales-today').innerText = `R$ ${data.revenueToday.toLocaleString('pt-BR')}`;
-    document.getElementById('abandoned-today').innerText = data.abandonedToday;
-    document.getElementById('conversion-checkout').innerText = `${data.conversion7d}%`;
-
-    console.log("Atualizado em tempo real:", data);
-
-  } catch (e) {
-    console.error("Erro ao carregar métricas:", e);
-  }
-}
-
-// Atualiza a cada 5s
-setInterval(loadMetrics, 5000);
-loadMetrics();
-</script>
-
-    
   </script>
 </body>
 </html>
-
