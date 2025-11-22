@@ -1,259 +1,343 @@
-// dashboard.js
-
-let currentRange = '7d';
+// ===== ESTADO GLOBAL =====
+let currentRange = 'today'; // 'today' | '7d' | '30d'
 let revenueChart = null;
 let pixChart = null;
 
-function safeNumber(value) {
-  if (typeof value !== 'number' || isNaN(value)) return 0;
-  return value;
+// ===== HELPERS BÁSICOS =====
+function safeNumber(v) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
 }
 
-function formatBRLFromCents(cents) {
-  const v = safeNumber(cents) / 100;
-  return v.toLocaleString('pt-BR', {
-    style: 'currency',
-    currency: 'BRL'
+function formatLabelDate(isoString) {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+
+  if (currentRange === 'today') {
+    // Ex.: 14:30
+    return d.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  }
+
+  // Ex.: 22/11
+  return d.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit'
   });
 }
 
-function setText(id, value) {
-  const el = document.getElementById(id);
+function animateNumber(el, target, prefix = '', suffix = '') {
   if (!el) return;
-  el.textContent = value;
+  const start = safeNumber(el.dataset.value || 0);
+  const end = safeNumber(target);
+  const duration = 350;
+  const startTime = performance.now();
+
+  el.dataset.value = end;
+
+  function frame(now) {
+    const progress = Math.min((now - startTime) / duration, 1);
+    const value = start + (end - start) * progress;
+    el.textContent =
+      prefix +
+      value.toLocaleString('pt-BR', {
+        maximumFractionDigits: 0
+      }) +
+      suffix;
+
+    if (progress < 1) requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
 }
 
-function setPercent(id, barId, value) {
-  const el = document.getElementById(id);
-  const bar = document.getElementById(barId);
-  const v = safeNumber(value);
-  const pct = Math.max(0, Math.min(100, v));
-
-  if (el) el.textContent = `${pct.toFixed(1)}%`;
-  if (bar) bar.style.width = `${pct}%`;
+function setText(elId, value, formatter) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const v = value ?? 0;
+  el.textContent = formatter ? formatter(v) : String(v);
 }
 
-function rangeLabel(k) {
-  switch (k) {
-    case 'today':
-      return 'Hoje';
-    case '30d':
-      return 'Últimos 30 dias';
-    default:
-      return 'Últimos 7 dias';
+// ===== APLICAÇÃO DAS MÉTRICAS NOS CARDS =====
+function applyMetricsToCards(m) {
+  if (!m) return;
+
+  // Visitantes ativos (últimos 5 min)
+  setText('visitors-active-value', safeNumber(m.visitors_active), (v) =>
+    v.toLocaleString('pt-BR')
+  );
+
+  // Checkouts iniciados hoje
+  setText(
+    'checkouts-today-value',
+    safeNumber(m.checkouts_today),
+    (v) => v.toLocaleString('pt-BR')
+  );
+
+  // Vendas hoje (Pix pago)
+  const ordersPaidToday = safeNumber(m.orders_paid_today);
+  setText(
+    'sales-today-value',
+    ordersPaidToday,
+    (v) => v.toLocaleString('pt-BR')
+  );
+
+  // Carrinhos abandonados hoje
+  setText(
+    'abandoned-today-value',
+    safeNumber(m.abandoned_today),
+    (v) => v.toLocaleString('pt-BR')
+  );
+
+  // Receita (últimos 7 / 30 dias) em reais
+  const revenue7d = safeNumber(m.revenue_7d) / 100;
+  const revEl = document.getElementById('revenue-7d-value');
+  if (revEl) {
+    revEl.textContent = revenue7d.toLocaleString('pt-BR', {
+      style: 'currency',
+      currency: 'BRL',
+      minimumFractionDigits: 2
+    });
+  }
+
+  // Conversão do checkout (%)
+  const checkoutConv = safeNumber(m.checkout_conversion);
+  setText('checkout-conv-value', checkoutConv, (v) => `${v.toFixed(1)}%`);
+
+  // Conversão de Pix (%)
+  const pixConv = safeNumber(m.pix_conversion);
+  setText('pix-conv-value', pixConv, (v) => `${v.toFixed(1)}%`);
+
+  // Quantidades Pix gerados / pagos (card de conversão de Pix)
+  setText(
+    'pix-count-generated',
+    safeNumber(m.pix_generated_7d),
+    (v) => v.toLocaleString('pt-BR')
+  );
+  setText(
+    'pix-count-paid',
+    safeNumber(m.pix_paid_7d),
+    (v) => v.toLocaleString('pt-BR')
+  );
+
+  // Comportamento do cliente (etapas bolinhas)
+  if (m.steps) {
+    setText(
+      'step-checkout-count',
+      safeNumber(m.steps.checkout),
+      (v) => v.toLocaleString('pt-BR')
+    );
+    setText(
+      'step-pix-count',
+      safeNumber(m.steps.pix_generated),
+      (v) => v.toLocaleString('pt-BR')
+    );
+    setText(
+      'step-paid-count',
+      safeNumber(m.steps.order_paid),
+      (v) => v.toLocaleString('pt-BR')
+    );
   }
 }
 
-function formatLabelDate(iso) {
-  if (!iso) return '';
-  const [y, m, d] = iso.split('-');
-  return `${d}/${m}`;
-}
-
+// ===== GRÁFICOS (LINHA / BARRAS) =====
 function updateCharts(series) {
   if (!series || !Array.isArray(series.labels)) return;
 
   const labels = series.labels.map(formatLabelDate);
-  const revenue = (series.revenue || []).map((c) => c / 100);
-  const pixGenerated = series.pix_generated || [];
-  const pixPaid = series.pix_paid || [];
+
+  // Receita em reais
+  const revenue = (series.revenue || []).map((c) => safeNumber(c) / 100);
+
+  // Pix gerados / pagos (já normalizados)
+  const pixGenerated = (series.pix_generated || []).map((v) => safeNumber(v));
+  const pixPaid = (series.pix_paid || []).map((v) => safeNumber(v));
+
+  const maxPixValue = Math.max(
+    1,
+    ...(pixGenerated.length ? pixGenerated : [0]),
+    ...(pixPaid.length ? pixPaid : [0])
+  );
 
   // ===== Gráfico de Receita (linha) =====
   const ctxRevenue = document
     .getElementById('chart-revenue')
-    .getContext('2d');
+    ?.getContext('2d');
 
-  if (!revenueChart) {
-    revenueChart = new Chart(ctxRevenue, {
-      type: 'line',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'Receita (R$)',
-            data: revenue,
-            tension: 0.3,
-            borderWidth: 2.5,
-            fill: true,
-            backgroundColor: 'rgba(108, 92, 231, 0.12)',
-            borderColor: '#6c5ce7',
-            pointRadius: 3,
-            pointHoverRadius: 5
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: (ctx) =>
-                `Receita: R$ ${ctx.parsed.y.toLocaleString('pt-BR', {
-                  minimumFractionDigits: 2
-                })}`
+  if (ctxRevenue) {
+    if (!revenueChart) {
+      revenueChart = new Chart(ctxRevenue, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Receita (R$)',
+              data: revenue,
+              tension: 0.3,
+              borderWidth: 2.5,
+              fill: true,
+              backgroundColor: 'rgba(108, 92, 231, 0.12)',
+              borderColor: '#6c5ce7',
+              pointRadius: 3,
+              pointHoverRadius: 5
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: (ctx) =>
+                  `Receita: R$ ${ctx.parsed.y.toLocaleString('pt-BR', {
+                    minimumFractionDigits: 2
+                  })}`
+              }
+            }
+          },
+          scales: {
+            x: {
+              ticks: { maxRotation: 0, autoSkip: true },
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              grid: { color: 'rgba(148, 163, 184, 0.25)' }
             }
           }
-        },
-        scales: {
-          x: {
-            ticks: { maxRotation: 0, autoSkip: true },
-            grid: { display: false }
-          },
-          y: {
-            beginAtZero: true,
-            grid: { color: 'rgba(148, 163, 184, 0.25)' }
-          }
         }
-      }
-    });
-  } else {
-    revenueChart.data.labels = labels;
-    revenueChart.data.datasets[0].data = revenue;
-    revenueChart.update();
+      });
+    } else {
+      revenueChart.data.labels = labels;
+      revenueChart.data.datasets[0].data = revenue;
+      revenueChart.update();
+    }
   }
 
   // ===== Gráfico de Pix (barras) =====
-  const ctxPix = document.getElementById('chart-pix').getContext('2d');
+  const ctxPix = document.getElementById('chart-pix')?.getContext('2d');
 
-  if (!pixChart) {
-    pixChart = new Chart(ctxPix, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [
-          {
-            label: 'Pix gerados',
-            data: pixGenerated,
-            backgroundColor: 'rgba(129, 140, 248, 0.6)'
+  if (ctxPix) {
+    if (!pixChart) {
+      pixChart = new Chart(ctxPix, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            {
+              label: 'Pix gerados',
+              data: pixGenerated,
+              backgroundColor: 'rgba(129, 140, 248, 0.7)',
+              borderRadius: 6,
+              maxBarThickness: 26,
+              barPercentage: 0.6,
+              categoryPercentage: 0.7
+            },
+            {
+              label: 'Pix pagos',
+              data: pixPaid,
+              backgroundColor: '#6c5ce7',
+              borderRadius: 6,
+              maxBarThickness: 26,
+              barPercentage: 0.6,
+              categoryPercentage: 0.7
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'bottom'
+            },
+            tooltip: {
+              callbacks: {
+                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}`
+              }
+            }
           },
-          {
-            label: 'Pix pagos',
-            data: pixPaid,
-            backgroundColor: '#6c5ce7'
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            display: true,
-            position: 'bottom'
-          },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}`
+          scales: {
+            x: {
+              stacked: false,
+              grid: { display: false }
+            },
+            y: {
+              beginAtZero: true,
+              suggestedMax: maxPixValue + 1,
+              grid: { color: 'rgba(148, 163, 184, 0.25)' }
             }
           }
-        },
-        scales: {
-          x: {
-            stacked: false,
-            grid: { display: false }
-          },
-          y: {
-            beginAtZero: true,
-            grid: { color: 'rgba(148, 163, 184, 0.25)' }
-          }
         }
-      }
-    });
-  } else {
-    pixChart.data.labels = labels;
-    pixChart.data.datasets[0].data = pixGenerated;
-    pixChart.data.datasets[1].data = pixPaid;
-    pixChart.update();
+      });
+    } else {
+      pixChart.data.labels = labels;
+      pixChart.data.datasets[0].data = pixGenerated;
+      pixChart.data.datasets[1].data = pixPaid;
+      pixChart.options.scales.y.suggestedMax = maxPixValue + 1;
+      pixChart.update();
+    }
   }
 }
 
-async function loadMetrics(range = currentRange) {
-  currentRange = range;
+// ===== FETCH DAS MÉTRICAS (API) =====
+async function fetchAndRenderMetrics() {
   const errorBanner = document.getElementById('metrics-error');
 
-  // Atualizar rótulos de range nos gráficos
-  setText('range-label-revenue', rangeLabel(range));
-  setText('range-label-pix', rangeLabel(range));
-
   try {
-    const resp = await fetch(`/api/metrics?range=${encodeURIComponent(range)}`, {
-      cache: 'no-store'
-    });
-    const data = await resp.json();
-
-    if (!resp.ok) {
-      throw new Error(data?.error || 'Erro desconhecido');
-    }
-
     if (errorBanner) errorBanner.classList.add('hidden');
 
-    const visitors_active = safeNumber(data.visitors_active);
-    const checkouts_today = safeNumber(data.checkouts_today);
-    const orders_paid_today = safeNumber(data.orders_paid_today);
-    const abandoned_today = safeNumber(data.abandoned_today);
+    const res = await fetch(`/api/metrics?range=${currentRange}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    const revenue_7d = safeNumber(data.revenue_7d);
-    const pix_generated_7d = safeNumber(data.pix_generated_7d);
-    const pix_paid_7d = safeNumber(data.pix_paid_7d);
+    const data = await res.json();
 
-    const pix_conversion = safeNumber(data.pix_conversion);
-    const checkout_conversion = safeNumber(data.checkout_conversion);
-
-    const steps = data.steps || {};
-    const step_checkout = safeNumber(steps.checkout);
-    const step_pix_generated = safeNumber(steps.pix_generated);
-    const step_order_paid = safeNumber(steps.order_paid);
-
-    // ===== Cards =====
-    setText('visitors-active', visitors_active);
-    setText('checkouts-today', checkouts_today);
-    setText('orders-paid-today', orders_paid_today);
-    setText('abandoned-today', abandoned_today);
-
-    setText('revenue-7d', formatBRLFromCents(revenue_7d));
-
-    setPercent('pix-conversion', 'pix-conversion-bar', pix_conversion);
-    setPercent(
-      'checkout-conversion',
-      'checkout-conversion-bar',
-      checkout_conversion
-    );
-
-    setText('pix-generated-7d', pix_generated_7d);
-    setText('pix-paid-7d', pix_paid_7d);
-
-    setText('step-checkout', step_checkout);
-    setText('step-pix-generated', step_pix_generated);
-    setText('step-order-paid', step_order_paid);
-
-    // ===== Gráficos =====
+    applyMetricsToCards(data);
     if (data.series) {
       updateCharts(data.series);
     }
   } catch (err) {
-    console.error('Erro ao carregar métricas do dashboard:', err);
+    console.error('Erro ao carregar métricas:', err);
     if (errorBanner) errorBanner.classList.remove('hidden');
   }
 }
 
-// Configurar botões de range
-function initRangeButtons() {
-  const buttons = document.querySelectorAll('.range-btn');
+// ===== FILTROS DE PERÍODO (Hoje / 7 dias / 30 dias) =====
+function setActiveRangeButton() {
+  const buttons = document.querySelectorAll('[data-range]');
   buttons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const range = btn.getAttribute('data-range');
-      buttons.forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      loadMetrics(range);
-    });
+    const range = btn.getAttribute('data-range');
+    if (range === currentRange) {
+      btn.classList.add('range-active');
+    } else {
+      btn.classList.remove('range-active');
+    }
   });
 }
 
+// ===== INIT =====
 document.addEventListener('DOMContentLoaded', () => {
-  initRangeButtons();
-  loadMetrics(currentRange);
+  // Botões de período
+  const buttons = document.querySelectorAll('[data-range]');
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const range = btn.getAttribute('data-range');
+      if (!range || range === currentRange) return;
+      currentRange = range;
+      setActiveRangeButton();
+      fetchAndRenderMetrics();
+    });
+  });
+
+  setActiveRangeButton();
+  fetchAndRenderMetrics();
+
   // Atualização automática a cada 15s
-  setInterval(() => loadMetrics(currentRange), 15000);
+  setInterval(fetchAndRenderMetrics, 15000);
 });
