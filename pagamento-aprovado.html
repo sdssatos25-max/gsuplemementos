@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Pagamento Aprovado | Growth</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --blue-header: #00a7f2;
+            --green-main: #00c853;
+            --border-soft: #e4e8f0;
+            --text-main: #1c2430;
+            --text-muted: #7b8497;
+            --bg-page: #f4f6fb;
+            --radius-card: 18px;
+            --shadow-soft: 0 8px 20px rgba(0, 0, 0, .06);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            font-family: 'Montserrat', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg-page);
+            color: var(--text-main);
+        }
+
+        .shell {
+            max-width: 480px;
+            margin: 0 auto;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #f7f9ff;
+        }
+
+        header {
+            background: var(--blue-header);
+            padding: 18px 16px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        header img {
+            max-width: 180px;
+            height: auto;
+            display: block;
+        }
+
+        main {
+            flex: 1;
+            padding: 18px 14px 24px;
+        }
+
+        .card {
+            background: #fff;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-soft);
+            padding: 22px 18px 20px;
+            text-align: center;
+            margin-bottom: 14px;
+        }
+
+        .success-icon {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 4px solid #e3f8ec;
+            background: #f3fff8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px;
+        }
+
+        .success-icon::before {
+            content: '';
+            width: 30px;
+            height: 15px;
+            border-left: 4px solid var(--green-main);
+            border-bottom: 4px solid var(--green-main);
+            transform: rotate(-45deg) translateY(-2px);
+            display: block;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .info-box {
+            text-align: left;
+            border-radius: 14px;
+            border: 1px solid var(--border-soft);
+            padding: 12px 14px;
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .info-label {
+            color: var(--text-muted)
+        }
+
+        .info-value {
+            font-weight: 600
+        }
+
+        .info-value.green {
+            color: var(--green-main)
+        }
+
+        .note {
+            font-size: 11px;
+            color: var(--text-muted);
+            text-align: left;
+            margin-top: 6px;
+        }
+
+        .btn-main {
+            width: 100%;
+            border-radius: 999px;
+            border: none;
+            padding: 12px 16px;
+            background: var(--green-main);
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 10px;
+            cursor: pointer;
+            box-shadow: 0 10px 20px rgba(0, 200, 83, .28);
+        }
+
+        .btn-main:active {
+            transform: translateY(1px);
+            box-shadow: 0 6px 15px rgba(0, 200, 83, .22);
+        }
+
+        .benefits {
+            background: #fff;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow-soft);
+            padding: 14px 16px 12px;
+            font-size: 12px;
+        }
+
+        .benefit-item {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 6px;
+            align-items: flex-start;
+        }
+
+        .benefit-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 999px;
+            background: #f1f3fb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+        }
+
+        .benefit-title {
+            font-weight: 600;
+            margin-bottom: 1px
+        }
+
+        .benefit-sub {
+            font-size: 11px;
+            color: var(--text-muted)
+        }
+
+        footer {
+            padding: 16px 14px 22px;
+            background: #f7f9ff;
+            font-size: 10px;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .footer-safe {
+            color: #20b144;
+            margin-top: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+        }
+
+        .footer-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #20b144;
+        }
+
+        @media(min-width:481px) {
+            body {
+                background: #d9e1f4
+            }
+
+            .shell {
+                margin-top: 18px;
+                margin-bottom: 18px;
+                border-radius: 18px;
+                overflow: hidden;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="shell">
+        <header>
+            <img src="https://i.ibb.co/P3Rt3jQ/logo-growth-CHR9-V4-Zw.png" alt="Growth Supplements" />
+        </header>
+
+        <main>
+            <div class="card">
+                <div class="success-icon"></div>
+                <div class="title">Pagamento aprovado!</div>
+                <div class="subtitle" id="subtitle-text">
+                    Seu pedido foi confirmado e já está em preparação.
+                </div>
+
+                <div class="info-box">
+                    <div class="info-row">
+                        <span class="info-label">Nº do pedido</span>
+                        <span class="info-value" id="order-id">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Valor pago</span>
+                        <span class="info-value green" id="order-amount">—</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Forma de pagamento</span>
+                        <span class="info-value">Pix</span>
+                    </div>
+                    <div class="info-row">
+                        <span class="info-label">Status</span>
+                        <span class="info-value green">Confirmado</span>
+                    </div>
+
+                    <div class="note">
+                        Você receberá um e-mail com os detalhes da compra e o código de rastreio assim que o pedido for
+                        postado.
+                    </div>
+                </div>
+
+                <button class="btn-main" onclick="window.location.href='checkout.html'">
+                    Voltar para a loja
+                </button>
+            </div>
+
+            <div class="benefits">
+                <div class="benefit-item">
+                    <div class="benefit-icon">🚚</div>
+                    <div>
+                        <div class="benefit-title">Envio rápido</div>
+                        <div class="benefit-sub">Postamos seu pedido em até 24h úteis após a confirmação.</div>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-icon">🔒</div>
+                    <div>
+                        <div class="benefit-title">Compra segura</div>
+                        <div class="benefit-sub">Seus dados são protegidos com criptografia de ponta.</div>
+                    </div>
+                </div>
+                <div class="benefit-item">
+                    <div class="benefit-icon">💬</div>
+                    <div>
+                        <div class="benefit-title">Suporte dedicado</div>
+                        <div class="benefit-sub">Qualquer dúvida, é só chamar no WhatsApp ou e-mail de suporte.</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            G Suplementos · Atendimento de segunda a sexta em horário comercial.<br />
+            <div class="footer-safe">
+                <div class="footer-dot"></div>
+                <span>Site Seguro</span>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        (function loadOrderInfo() {
+            try {
+                const orderId = localStorage.getItem('lastOrderId') || '—';
+                const amountStr = localStorage.getItem('lastOrderAmount');
+                let amountView = '—';
+                if (amountStr) {
+                    const cents = parseInt(amountStr, 10);
+                    if (!isNaN(cents)) {
+                        amountView = (cents / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    }
+                }
+                document.getElementById('order-id').innerText = orderId || '—';
+                document.getElementById('order-amount').innerText = amountView;
+            } catch (e) {
+                console.error('Erro ao carregar dados do pedido:', e);
+            }
+        })();
+    </script>
+</body>
+
+</html>
