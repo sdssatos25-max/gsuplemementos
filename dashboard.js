@@ -1,90 +1,93 @@
-const API_URL = "/api/metrics";
+// dashboard.js
 
-async function fetchMetrics() {
+function safeNumber(value) {
+  if (typeof value !== 'number' || isNaN(value)) return 0;
+  return value;
+}
+
+function formatBRLFromCents(cents) {
+  const v = safeNumber(cents) / 100;
+  return v.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
+  });
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = value;
+}
+
+function setPercent(id, barId, value) {
+  const el = document.getElementById(id);
+  const bar = document.getElementById(barId);
+  const v = safeNumber(value);
+  const pct = Math.max(0, Math.min(100, v));
+
+  if (el) el.textContent = `${pct.toFixed(1)}%`;
+  if (bar) bar.style.width = `${pct}%`;
+}
+
+async function loadMetrics() {
+  const errorBanner = document.getElementById('metrics-error');
+
   try {
-    const res = await fetch(API_URL);
-    const data = await res.json();
+    const resp = await fetch('/api/metrics', { cache: 'no-store' });
+    const data = await resp.json();
 
-    // Se a API respondeu erro, joga pro catch
-    if (!res.ok || data.error) {
-      throw new Error(data.details || data.error || "Erro HTTP " + res.status);
+    if (!resp.ok) {
+      throw new Error(data?.error || 'Erro desconhecido');
     }
 
-    // Esconde barra de erro
-    document.getElementById("errorBox").style.display = "none";
+    if (errorBanner) errorBanner.classList.add('hidden');
 
-    // Valores básicos
-    document.getElementById("visitorsActive").innerText = data.visitors_active ?? "0";
-    document.getElementById("checkoutsToday").innerText = data.checkouts_today ?? "0";
-    document.getElementById("salesToday").innerText = data.orders_paid_today ?? "0";
-    document.getElementById("abandonedToday").innerText = data.abandoned_today ?? "0";
+    const visitors_active = safeNumber(data.visitors_active);
+    const checkouts_today = safeNumber(data.checkouts_today);
+    const orders_paid_today = safeNumber(data.orders_paid_today);
+    const abandoned_today = safeNumber(data.abandoned_today);
 
-    // Receita 7 dias
-    document.getElementById("revenue7d").innerText =
-      "R$ " +
-      ((data.revenue_7d ?? 0) / 100)
-        .toFixed(2)
-        .replace(".", ",");
+    const revenue_7d = safeNumber(data.revenue_7d);
+    const pix_generated_7d = safeNumber(data.pix_generated_7d);
+    const pix_paid_7d = safeNumber(data.pix_paid_7d);
 
-    // Conversões
-    document.getElementById("checkoutConversion").innerText =
-      (data.checkout_conversion ?? 0) + "%";
+    const pix_conversion = safeNumber(data.pix_conversion);
+    const checkout_conversion = safeNumber(data.checkout_conversion);
 
-    document.getElementById("pixConversion").innerText =
-      (data.pix_conversion ?? 0) + "%";
+    const steps = data.steps || {};
+    const step_checkout = safeNumber(steps.checkout);
+    const step_pix_generated = safeNumber(steps.pix_generated);
+    const step_order_paid = safeNumber(steps.order_paid);
 
-    // Pix gerados/pagos
-    document.getElementById("pixGenerated").innerText =
-      data.pix_generated_7d ?? "0";
-    document.getElementById("pixPaid").innerText =
-      data.pix_paid_7d ?? "0";
+    // Preencher cards
+    setText('visitors-active', visitors_active);
+    setText('checkouts-today', checkouts_today);
+    setText('orders-paid-today', orders_paid_today);
+    setText('abandoned-today', abandoned_today);
 
-    // Comportamento (funil)
-    document.getElementById("stepCheckout").innerText =
-      data.steps?.checkout ?? "0";
-    document.getElementById("stepPix").innerText =
-      data.steps?.pix_generated ?? "0";
-    document.getElementById("stepPaid").innerText =
-      data.steps?.order_paid ?? "0";
+    setText('revenue-7d', formatBRLFromCents(revenue_7d));
 
-    // Barra de progresso da conversão de pix
-    const bar = document.getElementById("pixProgress");
-    const conv = data.pix_conversion ?? 0;
-    bar.style.width = Math.min(conv, 100) + "%";
+    setPercent('pix-conversion', 'pix-conversion-bar', pix_conversion);
+    setPercent(
+      'checkout-conversion',
+      'checkout-conversion-bar',
+      checkout_conversion
+    );
+
+    setText('pix-generated-7d', pix_generated_7d);
+    setText('pix-paid-7d', pix_paid_7d);
+
+    setText('step-checkout', step_checkout);
+    setText('step-pix-generated', step_pix_generated);
+    setText('step-order-paid', step_order_paid);
   } catch (err) {
-    console.error("Erro ao buscar métricas:", err);
-    const errorBox = document.getElementById("errorBox");
-    errorBox.style.display = "block";
-    errorBox.textContent =
-      "Erro ao carregar métricas do painel. Verifique se /api/metrics está funcionando. Detalhe: " +
-      err.message;
-
-    // Preenche tudo com traço para não ficar “undefined”
-    const ids = [
-      "visitorsActive",
-      "checkoutsToday",
-      "salesToday",
-      "abandonedToday",
-      "revenue7d",
-      "checkoutConversion",
-      "pixConversion",
-      "pixGenerated",
-      "pixPaid",
-      "stepCheckout",
-      "stepPix",
-      "stepPaid",
-    ];
-
-    ids.forEach((id) => {
-      const el = document.getElementById(id);
-      if (el) el.innerText = "–";
-    });
-
-    const bar = document.getElementById("pixProgress");
-    if (bar) bar.style.width = "0%";
+    console.error('Erro ao carregar métricas do dashboard:', err);
+    if (errorBanner) errorBanner.classList.remove('hidden');
   }
 }
 
-// Atualiza a cada 5 segundos
-setInterval(fetchMetrics, 5000);
-fetchMetrics();
+// Carregar ao abrir a página e atualizar a cada 15s
+document.addEventListener('DOMContentLoaded', () => {
+  loadMetrics();
+  setInterval(loadMetrics, 15000);
+});
