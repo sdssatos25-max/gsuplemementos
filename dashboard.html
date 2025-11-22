@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Dashboard – Black Friday</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+
+        body {
+            background: #0f1018;
+            color: #f5f5ff;
+            min-height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 220px;
+            background: #111222;
+            padding: 24px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            border-right: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .logo {
+            font-weight: 800;
+            font-size: 22px;
+            letter-spacing: .08em;
+            color: #a46dff;
+        }
+
+        .sidebar-section-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            opacity: .6;
+            margin-bottom: 8px;
+        }
+
+        .nav-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .nav-item {
+            font-size: 14px;
+            padding: 8px 10px;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: .85;
+        }
+
+        .nav-item.active {
+            background: radial-gradient(circle at top left, #9f5cff, #4a29a8);
+            opacity: 1;
+        }
+
+        .nav-item span.bullet {
+            width: 7px;
+            height: 7px;
+            border-radius: 999px;
+            background: #80ffb6;
+        }
+
+        .main {
+            flex: 1;
+            padding: 24px 32px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .main-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .main-title {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .store-pill {
+            background: rgba(255, 255, 255, 0.04);
+            padding: 6px 12px;
+            border-radius: 999px;
+            font-size: 13px;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .badge {
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            background: rgba(164, 109, 255, 0.15);
+            color: #cfa9ff;
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 16px;
+            margin-top: 8px;
+        }
+
+        .kpi-card {
+            background: rgba(17, 18, 34, 0.95);
+            border-radius: 18px;
+            padding: 16px 18px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .kpi-label {
+            font-size: 13px;
+            opacity: 0.7;
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .kpi-sub {
+            font-size: 12px;
+            opacity: .65;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .kpi-pill {
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 11px;
+            background: rgba(0, 0, 0, 0.25);
+        }
+
+        .kpi-pill.up {
+            color: #80ffb6;
+        }
+
+        .kpi-pill.down {
+            color: #ff7baf;
+        }
+
+        .content-row {
+            display: grid;
+            grid-template-columns: 2.1fr 1.3fr;
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        @media (max-width: 900px) {
+            body {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                flex-direction: row;
+                overflow-x: auto;
+            }
+
+            .main {
+                padding: 16px;
+            }
+
+            .content-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: rgba(17, 18, 34, 0.95);
+            border-radius: 18px;
+            padding: 18px 20px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+        }
+
+        .pill-select {
+            font-size: 12px;
+            background: rgba(255, 255, 255, 0.04);
+            border-radius: 999px;
+            padding: 4px 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        th,
+        td {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        th {
+            text-align: left;
+            opacity: .6;
+            font-weight: 500;
+        }
+
+        td.amount {
+            text-align: right;
+        }
+
+        .status-pill {
+            font-size: 11px;
+            padding: 3px 7px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        .status-abandoned {
+            color: #ff8ba3;
+        }
+
+        .status-started {
+            color: #f6d78b;
+        }
+
+        .live-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 999px;
+            background: #80ffb6;
+            box-shadow: 0 0 8px rgba(128, 255, 182, 0.7);
+        }
+    </style>
+</head>
+
+<body>
+    <aside class="sidebar">
+        <div>
+            <div class="logo">CORVEX-LIKE</div>
+        </div>
+
+        <div>
+            <div class="sidebar-section-title">Principal</div>
+            <ul class="nav-list">
+                <li class="nav-item active"><span class="bullet"></span> Início</li>
+                <li class="nav-item">Análises</li>
+                <li class="nav-item">Pedidos</li>
+                <li class="nav-item">Carrinhos Abandonados</li>
+            </ul>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="main-header">
+            <div>
+                <div class="store-pill">
+                    <span>Loja:</span> <strong>Black Friday</strong>
+                </div>
+                <h1 class="main-title">Bem-vindo de volta ao painel.</h1>
+                <span style="font-size:13px; opacity:.7;">Acompanhe o desempenho em tempo real do seu checkout
+                    próprio.</span>
+            </div>
+            <div>
+                <span class="badge">AO VIVO</span>
+            </div>
+        </header>
+
+        <!-- KPIs principais -->
+        <section class="kpi-grid" id="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Visitantes ativos agora</div>
+                <div class="kpi-value" id="kpi-visitors">–</div>
+                <div class="kpi-sub">
+                    <span class="live-dot"></span>
+                    <span id="kpi-visitors-sub">Atualizando...</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-label">Checkouts iniciados</div>
+                <div class="kpi-value" id="kpi-checkouts">–</div>
+                <div class="kpi-sub">
+                    <span class="kpi-pill up" id="kpi-checkouts-change">+0% vs ontem</span>
+                    <span style="opacity:.6;">Últimas 24h</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-label">Vendas hoje</div>
+                <div class="kpi-value" id="kpi-sales">R$ 0,00</div>
+                <div class="kpi-sub">
+                    <span class="kpi-pill up" id="kpi-sales-change">+0% vs ontem</span>
+                </div>
+            </div>
+
+            <div class="kpi-card">
+                <div class="kpi-label">Carrinhos abandonados</div>
+                <div class="kpi-value" id="kpi-abandoned">–</div>
+                <div class="kpi-sub">
+                    <span class="kpi-pill down" id="kpi-abandoned-change">0% abandono</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="content-row">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Resumo dos últimos 7 dias</div>
+                    <div class="pill-select">Últimos 7 dias ▼</div>
+                </div>
+                <p style="font-size:13px; opacity:.7; margin-bottom:12px;">
+                    Aqui você pode ver um resumo simples de pedidos, receita e taxa de conversão. Depois podemos plugar
+                    um gráfico real.
+                </p>
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <div class="kpi-label">Pedidos</div>
+                        <div class="kpi-value" id="kpi-orders-7d">–</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Receita</div>
+                        <div class="kpi-value" id="kpi-revenue-7d">R$ 0,00</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-label">Taxa de conversão</div>
+                        <div class="kpi-value" id="kpi-conversion-7d">0%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">Carrinhos abandonados (hoje)</div>
+                    <div class="pill-select">Atualizado agora</div>
+                </div>
+                <table id="abandoned-table">
+                    <thead>
+                        <tr>
+                            <th>Cliente</th>
+                            <th>Etapa</th>
+                            <th class="amount">Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- linhas preenchidas via JS -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <script>
+            async function carregarDashboard() {
+                try {
+                    const resp = await fetch('/api/metrics');
+                    const data = await resp.json();
+
+                    // KPIs principais
+                    document.getElementById('kpi-visitors').innerText = data.visitorsNow ?? 0;
+                    document.getElementById('kpi-visitors-sub').innerText =
+                        data.visitorsNow === 1 ? '1 visitante ativo' : (data.visitorsNow + ' visitantes ativos');
+
+                    document.getElementById('kpi-checkouts').innerText = data.checkoutsStarted ?? 0;
+                    document.getElementById('kpi-checkouts-change').innerText = data.checkoutsChangeText ?? '+0% vs ontem';
+
+                    document.getElementById('kpi-sales').innerText = data.salesTodayBRL ?? 'R$ 0,00';
+                    document.getElementById('kpi-sales-change').innerText = data.salesChangeText ?? '+0% vs ontem';
+
+                    document.getElementById('kpi-abandoned').innerText = data.abandonedCarts ?? 0;
+                    document.getElementById('kpi-abandoned-change').innerText =
+                        (data.abandonedRateText ?? '0% abandono');
+
+                    // Últimos 7 dias
+                    document.getElementById('kpi-orders-7d').innerText = data.orders7d ?? 0;
+                    document.getElementById('kpi-revenue-7d').innerText = data.revenue7dBRL ?? 'R$ 0,00';
+                    document.getElementById('kpi-conversion-7d').innerText = (data.conversion7d ?? 0) + '%';
+
+                    // Tabela de carrinhos abandonados
+                    const tbody = document.querySelector('#abandoned-table tbody');
+                    tbody.innerHTML = '';
+                    (data.abandonedList || []).forEach(item => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+              <td>${item.name || 'Visitante'}</td>
+              <td><span class="status-pill status-abandoned">${item.stage || 'Pagamento'}</span></td>
+              <td class="amount">R$ ${(item.amount / 100).toFixed(2).replace('.', ',')}</td>
+            `;
+                        tbody.appendChild(tr);
+                    });
+
+                } catch (e) {
+                    console.error('Erro ao carregar métricas:', e);
+                }
+            }
+
+            // carrega ao abrir
+            carregarDashboard();
+            // e atualiza a cada 30s
+            setInterval(carregarDashboard, 30000);
+        </script>
+    </main>
+</body>
+
+</html>

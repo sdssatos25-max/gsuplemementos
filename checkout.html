@@ -1528,27 +1528,55 @@
         // ===== CONFIG GERAL =====
         const PIX_AMOUNT_CENTS = 12997; // 129,97
 
-        // ===== BLACKCAT VIA BACKEND =====
-        // Agora o front chama apenas /api/blackcat e /api/blackcat-status e não expõe keys.
-
-        // ===== UTMIFY VIA BACKEND =====
-        // O token agora fica só no backend, aqui chamamos /api/utmify
-
+        // ===== VARIÁVEIS GLOBAIS =====
         let pixCodeGlobal = '';
         let pixTimerInterval = null;
         let pixStatusInterval = null;
         let pixTransactionId = null;
         let lastOrderId = null;
 
-        // controle de envio Utmify
+        // Controle de envio Utmify
         let utmifyOrderCreatedAt = null;
         let utmifyTrackingParams = null;
 
+        // ===== SESSION ID PARA ANALYTICS (PAINEL) =====
+        let sessionId = localStorage.getItem('gs_session_id');
+        if (!sessionId) {
+            if (window.crypto && crypto.randomUUID) {
+                sessionId = crypto.randomUUID();
+            } else {
+                sessionId = String(Date.now()) + '-' + Math.random().toString(16).slice(2);
+            }
+            localStorage.setItem('gs_session_id', sessionId);
+        }
+
+        function trackEvent(type, extra) {
+            try {
+                fetch('/api/track', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type,
+                        session_id: sessionId,
+                        ...(extra || {})
+                    })
+                });
+            } catch (e) {
+                console.warn('Erro ao enviar evento', type, e);
+            }
+        }
+
         // ===== STEPS =====
         function goToStep(stepNumber) {
-            const screens = { 1: 'screen-identificacao', 2: 'screen-endereco', 3: 'screen-pagamento', 4: 'screen-pix' };
+            const screens = {
+                1: 'screen-identificacao',
+                2: 'screen-endereco',
+                3: 'screen-pagamento',
+                4: 'screen-pix'
+            };
             document.querySelectorAll('.step-screen').forEach(s => s.classList.remove('active'));
             document.getElementById(screens[stepNumber]).classList.add('active');
+
             document.querySelectorAll('.step-indicator').forEach(el => {
                 const label = Number(el.getAttribute('data-step-label'));
                 if (label <= 3) {
@@ -1614,7 +1642,7 @@
             }
         }
 
-        // ===== FUNÇÕES UTMIFY =====
+        // ===== FUNÇÕES UTMIFY (HELPERS) =====
         function formatUtc(date) {
             const pad = n => String(n).padStart(2, '0');
             return `${date.getUTCFullYear()}-${pad(date.getUTCMonth() + 1)}-${pad(date.getUTCDate())} ` +
@@ -1634,53 +1662,53 @@
             };
         }
 
-        // Envio para Utmify AGORA via backend (/api/utmify)
-        async function utmifySendPix(orderId, status, approvedDateOrNull) {
-            if (!utmifyOrderCreatedAt) {
-                utmifyOrderCreatedAt = formatUtc(new Date());
-            }
-            if (!utmifyTrackingParams) {
-                utmifyTrackingParams = getTrackingParams();
-            }
-
-            const nome = document.getElementById('nome-completo').value || 'Cliente';
-            const email = document.getElementById('email').value || '';
-            const fone = (document.getElementById('whatsapp').value || '').replace(/\D/g, '');
-            const cpf = (document.getElementById('cpf-pagador').value || '').replace(/\D/g, '');
-
-            const body = {
-                orderId: orderId,
-                platform: 'CheckoutProprio',
-                paymentMethod: 'pix',
-                status: status,
-                createdAt: utmifyOrderCreatedAt,
-                approvedDate: approvedDateOrNull,
-                refundedAt: null,
-                customer: {
-                    name: nome,
-                    email: email,
-                    phone: fone || null,
-                    document: cpf || null,
-                    country: 'BR'
-                },
-                products: [{
-                    id: 'combo-black-friday',
-                    name: 'Combo Promocional - Black Friday',
-                    planId: null,
-                    planName: null,
-                    quantity: 1,
-                    priceInCents: PIX_AMOUNT_CENTS
-                }],
-                trackingParameters: utmifyTrackingParams,
-                commission: {
-                    totalPriceInCents: PIX_AMOUNT_CENTS,
-                    gatewayFeeInCents: 0,
-                    userCommissionInCents: PIX_AMOUNT_CENTS,
-                    currency: 'BRL'
-                }
-            };
-
+        // Envia pedido para Utmify via backend (/api/utmify) APÓS PAGAMENTO
+        async function enviarPedidoParaUtmify(tx) {
             try {
+                if (!utmifyOrderCreatedAt) {
+                    utmifyOrderCreatedAt = formatUtc(new Date());
+                }
+                if (!utmifyTrackingParams) {
+                    utmifyTrackingParams = getTrackingParams();
+                }
+
+                const nome = document.getElementById('nome-completo').value || 'Cliente';
+                const email = document.getElementById('email').value || '';
+                const fone = (document.getElementById('whatsapp').value || '').replace(/\D/g, '');
+                const cpf = (document.getElementById('cpf-pagador').value || '').replace(/\D/g, '');
+
+                const body = {
+                    orderId: lastOrderId || tx.externalRef || String(tx.id || ''),
+                    platform: 'CheckoutProprio',
+                    paymentMethod: 'pix',
+                    status: tx.status || 'paid',
+                    createdAt: utmifyOrderCreatedAt,
+                    approvedDate: formatUtc(new Date()),
+                    refundedAt: null,
+                    customer: {
+                        name: nome,
+                        email: email,
+                        phone: fone || null,
+                        document: cpf || null,
+                        country: 'BR'
+                    },
+                    products: [{
+                        id: 'combo-black-friday',
+                        name: 'Combo Promocional - Black Friday',
+                        planId: null,
+                        planName: null,
+                        quantity: 1,
+                        priceInCents: tx.amount || PIX_AMOUNT_CENTS
+                    }],
+                    trackingParameters: utmifyTrackingParams,
+                    commission: {
+                        totalPriceInCents: tx.amount || PIX_AMOUNT_CENTS,
+                        gatewayFeeInCents: 0,
+                        userCommissionInCents: tx.amount || PIX_AMOUNT_CENTS,
+                        currency: 'BRL'
+                    }
+                };
+
                 await fetch('/api/utmify', {
                     method: 'POST',
                     headers: {
@@ -1689,7 +1717,7 @@
                     body: JSON.stringify(body)
                 });
             } catch (err) {
-                console.log('Erro ao enviar para Utmify:', err);
+                console.error('Erro ao enviar para Utmify:', err);
             }
         }
 
@@ -1711,7 +1739,8 @@
                 if (restante <= 0) {
                     clearInterval(pixTimerInterval);
                     el.innerText = '00:00';
-                    document.getElementById('pix-status-text').innerText = 'Tempo expirado. Gere um novo código Pix para concluir o pagamento.';
+                    document.getElementById('pix-status-text').innerText =
+                        'Tempo expirado. Gere um novo código Pix para concluir o pagamento.';
                     return;
                 }
                 render();
@@ -1731,20 +1760,18 @@
                     console.log('Erro ao consultar transação:', data);
                     return;
                 }
-
                 const tx = data.data || data;
-                const status = (tx.status || '').toLowerCase();
+                const status = tx.status;
 
                 if (status === 'approved' || status === 'paid' || status === 'completed' || status === 'succeeded') {
                     clearInterval(pixStatusInterval);
-                    document.getElementById('pix-status-text').innerText = 'Pagamento aprovado! Finalizando seu pedido...';
+                    document.getElementById('pix-status-text').innerText =
+                        'Pagamento aprovado! Finalizando seu pedido...';
 
-                    // UTMIFY: PIX PAGO
                     const approvedAtUtc = formatUtc(new Date());
                     const orderRef = lastOrderId || tx.externalRef || String(tx.id || '');
-                    utmifySendPix(orderRef, 'paid', approvedAtUtc);
 
-                    // FACEBOOK PIXEL: Purchase (extra)
+                    // Facebook Pixel: Purchase
                     if (window.fbq) {
                         const value = (tx.amount || PIX_AMOUNT_CENTS) / 100;
                         fbq('track', 'Purchase', {
@@ -1762,13 +1789,27 @@
                         localStorage.setItem('lastOrderAmount', String(tx.amount || PIX_AMOUNT_CENTS));
                     } catch (e) { }
 
+                    // Painel: registra pedido pago
+                    trackEvent('order_paid', {
+                        order_id: orderRef,
+                        value_in_cents: tx.amount || PIX_AMOUNT_CENTS
+                    });
+
+                    // Envia pedido para Utmify via backend
+                    try {
+                        await enviarPedidoParaUtmify(tx);
+                    } catch (e) {
+                        console.error('Erro ao enviar pedido para Utmify:', e);
+                    }
+
                     setTimeout(() => {
                         window.location.href = 'pagamento-aprovado.html';
                     }, 1500);
 
                 } else if (status === 'refused' || status === 'cancelled') {
                     clearInterval(pixStatusInterval);
-                    document.getElementById('pix-status-text').innerText = 'Pagamento não aprovado. Gere um novo Pix.';
+                    document.getElementById('pix-status-text').innerText =
+                        'Pagamento não aprovado. Gere um novo Pix.';
                 }
             } catch (e) {
                 console.error('Erro ao consultar status Pix:', e);
@@ -1789,6 +1830,9 @@
             try {
                 const pedidoId = 'PEDIDO-' + Math.floor(Math.random() * 999999);
                 lastOrderId = pedidoId;
+
+                // Painel: checkout iniciado
+                trackEvent('checkout_started', { order_id: pedidoId });
 
                 const nome = document.getElementById('nome-completo').value || 'Cliente';
                 const email = document.getElementById('email').value || 'cliente@example.com';
@@ -1865,14 +1909,16 @@
 
                 pixCodeGlobal = pixCode;
 
-                // UTMIFY: PIX GERADO (aguardando pagamento)
-                utmifyOrderCreatedAt = formatUtc(new Date());
-                utmifySendPix(pedidoId, 'waiting_payment', null);
+                // Painel: Pix gerado
+                trackEvent('pix_generated', {
+                    order_id: pedidoId,
+                    value_in_cents: tx.amount || PIX_AMOUNT_CENTS
+                });
 
-                // FACEBOOK PIXEL: evento custom PixGenerated
+                // Facebook Pixel: evento custom PixGenerated
                 if (window.fbq) {
                     fbq('trackCustom', 'PixGenerated', {
-                        value: PIX_AMOUNT_CENTS / 100,
+                        value: (PIX_AMOUNT_CENTS / 100),
                         currency: 'BRL',
                         order_id: pedidoId,
                         payment_method: 'pix'
@@ -1928,6 +1974,9 @@
             const optCredit = document.getElementById('opt-credit');
             const optPix = document.getElementById('opt-pix');
 
+            // Evento de visita assim que o checkout abre (para o painel)
+            trackEvent('visit', {});
+
             optCredit.addEventListener('click', () => {
                 optCredit.classList.add('active');
                 optPix.classList.remove('active');
@@ -1955,7 +2004,7 @@
             });
             cepInput.addEventListener('blur', buscarCEP);
 
-            // FACEBOOK PIXEL: InitiateCheckout assim que o checkout abrir
+            // Facebook Pixel: InitiateCheckout assim que o checkout abrir
             if (window.fbq) {
                 fbq('track', 'InitiateCheckout', {
                     value: PIX_AMOUNT_CENTS / 100,
@@ -1967,6 +2016,7 @@
             }
         })();
     </script>
+
 
 </body>
 
