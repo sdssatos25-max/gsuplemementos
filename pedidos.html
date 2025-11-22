@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pedidos • Dashboard do Checkout</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #f7f5ff;
+      --bg-card: #ffffff;
+      --border-soft: #ebe5ff;
+      --primary: #7b00ff;
+      --primary-soft: #f0e6ff;
+      --primary-pill: #f4ecff;
+      --text-main: #18112b;
+      --text-muted: #8f8bb3;
+      --success-soft: #e5fbef;
+      --success: #1aa36f;
+      --danger-soft: #ffecef;
+      --danger: #e5486e;
+      --shadow-soft: 0 18px 40px rgba(50, 14, 92, 0.08);
+      --radius-card: 18px;
+      --radius-pill: 999px;
+      --sidebar-width: 250px;
+      --transition-fast: 0.18s ease-out;
+      --font-sans: -apple-system, BlinkMacSystemFont, "Inter", system-ui, -apple-system,
+        "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-sans);
+      background: radial-gradient(circle at top left, #f1e9ff 0, #f7f5ff 40%, #ffffff 100%);
+      color: var(--text-main);
+      display: flex;
+      min-height: 100vh;
+    }
+
+    a {
+      text-decoration: none;
+      color: inherit;
+    }
+
+    /* SIDEBAR */
+
+    .sidebar {
+      width: var(--sidebar-width);
+      background: linear-gradient(180deg, #200049 0%, #190234 100%);
+      color: #f7f4ff;
+      padding: 20px 22px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .logo-badge {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 20%, #ffeefc, #c084fc 40%, #7b00ff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    .logo-text-main {
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      font-size: 18px;
+    }
+
+    .logo-text-sub {
+      display: block;
+      font-size: 11px;
+      opacity: 0.7;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .sidebar-section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      opacity: 0.55;
+      margin: 6px 0 10px;
+      letter-spacing: 0.16em;
+    }
+
+    .nav-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .nav-item a {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      padding: 9px 11px;
+      border-radius: 999px;
+      opacity: 0.85;
+      transition: background var(--transition-fast), opacity var(--transition-fast),
+        transform var(--transition-fast);
+    }
+
+    .nav-item a span.icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+    }
+
+    .nav-item a:hover {
+      opacity: 1;
+      background: rgba(255, 255, 255, 0.06);
+      transform: translateX(1px);
+    }
+
+    .nav-item.active a {
+      background: #f4ecff;
+      color: #230041;
+      opacity: 1;
+    }
+
+    .nav-item.active a span.icon {
+      background: #230041;
+      color: #f6f0ff;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      font-size: 11px;
+      opacity: 0.55;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* MAIN LAYOUT */
+
+    .main {
+      flex: 1;
+      padding: 22px 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .topbar-left h1 {
+      font-size: 20px;
+      margin-bottom: 4px;
+    }
+
+    .topbar-left p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+    }
+
+    .pill-period {
+      display: inline-flex;
+      align-items: center;
+      border-radius: var(--radius-pill);
+      border: 1px solid var(--border-soft);
+      background: rgba(255, 255, 255, 0.9);
+      padding: 3px;
+      font-size: 12px;
+      box-shadow: 0 10px 24px rgba(124, 0, 255, 0.06);
+    }
+
+    .pill-period button {
+      background: transparent;
+      border: none;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: background var(--transition-fast), color var(--transition-fast),
+        transform var(--transition-fast);
+    }
+
+    .pill-period button.active {
+      background: var(--primary);
+      color: #fff;
+      transform: translateY(-1px);
+    }
+
+    .pill-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: #ecfdf3;
+      color: var(--success);
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .pill-live span.dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: var(--success);
+      box-shadow: 0 0 0 6px rgba(26, 163, 111, 0.25);
+    }
+
+    .content {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    /* CARDS RESUMO */
+
+    .grid-summary {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius-card);
+      padding: 18px 20px 16px;
+      box-shadow: var(--shadow-soft);
+      border: 1px solid var(--border-soft);
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .card-title {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title-pill {
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      background: var(--primary-pill);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      color: var(--primary);
+    }
+
+    .card-value {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .card-sub {
+      margin-top: 6px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chip-soft {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 3px 8px;
+      background: #f3f0ff;
+      color: #5a3db1;
+    }
+
+    /* TABELA */
+
+    .card-table {
+      margin-top: 6px;
+      padding-top: 4px;
+    }
+
+    .table-wrapper {
+      border-radius: 14px;
+      border: 1px solid var(--border-soft);
+      overflow: hidden;
+      background: #fbfaff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead {
+      background: #f5f0ff;
+    }
+
+    th,
+    td {
+      padding: 10px 14px;
+      text-align: left;
+      white-space: nowrap;
+    }
+
+    th {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    tbody tr {
+      transition: background 0.16s ease-out, transform 0.12s ease-out;
+    }
+
+    tbody tr:nth-child(even) {
+      background: #fbf9ff;
+    }
+
+    tbody tr:hover {
+      background: #f3ecff;
+      transform: translateY(-1px);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      border-radius: 999px;
+      padding: 3px 9px;
+      font-weight: 500;
+    }
+
+    .status-paid {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .status-pending {
+      background: #fff4e1;
+      color: #b4690e;
+    }
+
+    .status-started {
+      background: #edf2ff;
+      color: #3949ab;
+    }
+
+    .badge-method {
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary);
+    }
+
+    .muted {
+      color: var(--text-muted);
+      font-size: 12px;
+    }
+
+    .empty-state {
+      padding: 18px 16px;
+      text-align: center;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    @media (max-width: 960px) {
+      body {
+        flex-direction: column;
+      }
+
+      .sidebar {
+        width: 100%;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+      }
+
+      .sidebar-logo {
+        margin-bottom: 0;
+      }
+
+      .sidebar-nav-block {
+        display: flex;
+        gap: 10px;
+      }
+
+      .nav-list {
+        flex-direction: row;
+      }
+
+      .main {
+        padding: 16px;
+      }
+
+      .grid-summary {
+        grid-template-columns: 1fr;
+      }
+
+      .table-wrapper {
+        overflow-x: auto;
+      }
+
+      table {
+        min-width: 700px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-badge">G</div>
+      <div>
+        <div class="logo-text-main">GSUPLEMENTOS</div>
+        <span class="logo-text-sub">Painel do Checkout</span>
+      </div>
+    </div>
+
+    <div class="sidebar-nav-block">
+      <div>
+        <div class="sidebar-section-label">Análises</div>
+        <ul class="nav-list">
+          <li class="nav-item">
+            <a href="/dashboard.html">
+              <span class="icon">📡</span>
+              <span>Radar em tempo real</span>
+            </a>
+          </li>
+          <li class="nav-item active">
+            <a href="/pedidos.html">
+              <span class="icon">📄</span>
+              <span>Pedidos</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/carrinhos-abandonados.html">
+              <span class="icon">🛒</span>
+              <span>Carrinhos abandonados</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      Última atualização: <span id="last-updated">—</span>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>Pedidos</h1>
+        <p>Gerencie os pedidos gerados pelo checkout próprio.</p>
+      </div>
+      <div class="topbar-right">
+        <div class="pill-period" id="period-selector">
+          <button data-period="today" class="active">Hoje</button>
+          <button data-period="7d">Últimos 7 dias</button>
+          <button data-period="30d">Últimos 30 dias</button>
+        </div>
+        <div class="pill-live">
+          <span class="dot"></span>
+          <span>Atualização automática</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="content">
+      <!-- CARDS RESUMO -->
+      <div class="grid-summary">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="card-title-pill">🧾</span>
+              <span>Pedidos totais (período)</span>
+            </div>
+          </div>
+          <div class="card-value" id="summary-total-orders">–</div>
+          <div class="card-sub">
+            <span class="chip-soft">
+              <strong id="summary-paid-count">–</strong> pagos
+            </span>
+            <span class="muted" id="summary-pending-count">– pendentes</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="card-title-pill">💰</span>
+              <span>Receita (PIX) no período</span>
+            </div>
+          </div>
+          <div class="card-value" id="summary-revenue">R$ 0,00</div>
+          <div class="card-sub muted">
+            Considera apenas pedidos com status <strong>Pago</strong>.
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <span class="card-title-pill">📈</span>
+              <span>Taxa de aprovação</span>
+            </div>
+          </div>
+          <div class="card-value" id="summary-approval">–%</div>
+          <div class="card-sub muted">
+            Cálculo: pedidos pagos ÷ pedidos com PIX gerado.
+          </div>
+        </div>
+      </div>
+
+      <!-- TABELA -->
+      <div class="card card-table">
+        <div class="card-header">
+          <div class="card-title">
+            <span>Lista de pedidos</span>
+          </div>
+          <div class="muted" id="summary-rows-info">Carregando…</div>
+        </div>
+        <div class="table-wrapper" id="orders-table-wrapper">
+          <div class="empty-state" id="orders-empty">Carregando pedidos…</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const formatCurrency = (cents) => {
+      const value = Number(cents || 0) / 100;
+      return value.toLocaleString('pt-BR', {
+        style: 'currency',
+        currency: 'BRL'
+      });
+    };
+
+    const formatDateTime = (iso) => {
+      if (!iso) return '—';
+      const d = new Date(iso);
+      return d.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    };
+
+    const byPeriodFilter = (period) => {
+      if (period === 'today') {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        return (d) => d >= start;
+      }
+      const now = new Date();
+      if (period === '7d') {
+        const start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        return (d) => d >= start;
+      }
+      if (period === '30d') {
+        const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+        return (d) => d >= start;
+      }
+      return () => true;
+    };
+
+    const periodSelector = document.getElementById('period-selector');
+    const lastUpdatedEl = document.getElementById('last-updated');
+
+    let allOrders = [];
+    let currentPeriod = 'today';
+
+    async function loadOrders() {
+      try {
+        const res = await fetch('/api/orders');
+        const data = await res.json();
+        allOrders = data.orders || [];
+        lastUpdatedEl.textContent = new Date().toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit'
+        });
+        render();
+      } catch (err) {
+        console.error(err);
+        document.getElementById('orders-table-wrapper').innerHTML =
+          '<div class="empty-state">Erro ao carregar pedidos. Verifique o endpoint <code>/api/orders</code>.</div>';
+      }
+    }
+
+    function render() {
+      const filterFn = byPeriodFilter(currentPeriod);
+      const filtered = allOrders.filter((o) => filterFn(new Date(o.created_at)));
+
+      // Resumo
+      const total = filtered.length;
+      const paid = filtered.filter((o) => o.status === 'paid').length;
+      const pending = filtered.filter((o) => o.status === 'pending').length;
+
+      const revenue = filtered
+        .filter((o) => o.status === 'paid')
+        .reduce((sum, o) => sum + Number(o.value_in_cents || 0), 0);
+
+      document.getElementById('summary-total-orders').textContent = total;
+      document.getElementById('summary-paid-count').textContent = paid;
+      document.getElementById('summary-pending-count').textContent = `${pending} pendentes`;
+      document.getElementById('summary-revenue').textContent = formatCurrency(revenue);
+
+      const approval = total > 0 ? Math.round((paid / total) * 100) : 0;
+      document.getElementById('summary-approval').textContent = `${approval}%`;
+
+      const rowsInfo = total === 0 ? 'Nenhum pedido no período selecionado.' : `${total} pedidos encontrados.`;
+      document.getElementById('summary-rows-info').textContent = rowsInfo;
+
+      const wrapper = document.getElementById('orders-table-wrapper');
+
+      if (total === 0) {
+        wrapper.innerHTML =
+          '<div class="empty-state">Nenhum pedido para o período selecionado.</div>';
+        return;
+      }
+
+      const rowsHtml = filtered
+        .map((o) => {
+          let statusClass = 'status-started';
+          let statusLabel = 'Iniciado';
+
+          if (o.status === 'paid') {
+            statusClass = 'status-paid';
+            statusLabel = 'Pago';
+          } else if (o.status === 'pending') {
+            statusClass = 'status-pending';
+            statusLabel = 'Pendente';
+          }
+
+          return `
+            <tr>
+              <td>${o.order_id || '—'}</td>
+              <td>${formatDateTime(o.created_at)}</td>
+              <td>${formatCurrency(o.value_in_cents)}</td>
+              <td><span class="badge-method">Pix</span></td>
+              <td>
+                <span class="status-pill ${statusClass}">
+                  ${statusLabel}
+                </span>
+              </td>
+            </tr>
+          `;
+        })
+        .join('');
+
+      wrapper.innerHTML = `
+        <div class="table-wrapper-inner">
+          <table>
+            <thead>
+              <tr>
+                <th>ID do pedido</th>
+                <th>Data</th>
+                <th>Valor</th>
+                <th>Pagamento</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    periodSelector.addEventListener('click', (ev) => {
+      if (ev.target.tagName !== 'BUTTON') return;
+      const period = ev.target.dataset.period;
+      if (!period) return;
+      currentPeriod = period;
+
+      periodSelector.querySelectorAll('button').forEach((b) => b.classList.remove('active'));
+      ev.target.classList.add('active');
+
+      render();
+    });
+
+    // Auto refresh a cada 30s
+    setInterval(loadOrders, 30000);
+
+    loadOrders();
+  </script>
+</body>
+</html>
