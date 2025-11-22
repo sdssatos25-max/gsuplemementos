@@ -1,432 +1,552 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-
 <head>
-    <meta charset="UTF-8" />
-    <title>Dashboard – Black Friday</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        }
+  <meta charset="UTF-8" />
+  <title>Painel – GSuplementos</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
 
-        body {
-            background: #0f1018;
-            color: #f5f5ff;
-            min-height: 100vh;
-            display: flex;
-        }
+    body {
+      background: #f5f6fb;
+      color: #111827;
+      padding: 24px;
+    }
 
-        .sidebar {
-            width: 220px;
-            background: #111222;
-            padding: 24px 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-            border-right: 1px solid rgba(255, 255, 255, 0.04);
-        }
+    .layout {
+      max-width: 1300px;
+      margin: 0 auto;
+    }
 
-        .logo {
-            font-weight: 800;
-            font-size: 22px;
-            letter-spacing: .08em;
-            color: #a46dff;
-        }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
 
-        .sidebar-section-title {
-            font-size: 11px;
-            text-transform: uppercase;
-            opacity: .6;
-            margin-bottom: 8px;
-        }
+    header h1 {
+      font-size: 24px;
+      font-weight: 700;
+    }
 
-        .nav-list {
-            list-style: none;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
+    header span {
+      font-size: 13px;
+      opacity: 0.7;
+    }
 
-        .nav-item {
-            font-size: 14px;
-            padding: 8px 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            opacity: .85;
-        }
+    .last-update {
+      font-size: 12px;
+      opacity: 0.6;
+    }
 
-        .nav-item.active {
-            background: radial-gradient(circle at top left, #9f5cff, #4a29a8);
-            opacity: 1;
-        }
+    .error-banner {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 12px;
+      margin-bottom: 16px;
+      display: none;
+    }
 
-        .nav-item span.bullet {
-            width: 7px;
-            height: 7px;
-            border-radius: 999px;
-            background: #80ffb6;
-        }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
 
-        .main {
-            flex: 1;
-            padding: 24px 32px;
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
+    .card {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 16px 18px;
+      border: 1px solid rgba(15, 23, 42, 0.04);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+      position: relative;
+      overflow: hidden;
+    }
 
-        .main-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-        }
+    .card-title {
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.8;
+      margin-bottom: 8px;
+    }
 
-        .main-title {
-            font-size: 24px;
-            font-weight: 700;
-        }
+    .card-main {
+      display: flex;
+      align-items: baseline;
+      gap: 6px;
+      margin-bottom: 6px;
+    }
 
-        .store-pill {
-            background: rgba(255, 255, 255, 0.04);
-            padding: 6px 12px;
-            border-radius: 999px;
-            font-size: 13px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
+    .card-value {
+      font-size: 26px;
+      font-weight: 700;
+    }
 
-        .badge {
-            font-size: 11px;
-            padding: 3px 8px;
-            border-radius: 999px;
-            background: rgba(164, 109, 255, 0.15);
-            color: #cfa9ff;
-        }
+    .card-sub {
+      font-size: 12px;
+      opacity: 0.75;
+    }
 
-        .kpi-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
-            gap: 16px;
-            margin-top: 8px;
-        }
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #f3f4ff;
+      color: #4c1d95;
+      margin-top: 6px;
+    }
 
-        .kpi-card {
-            background: rgba(17, 18, 34, 0.95);
-            border-radius: 18px;
-            padding: 16px 18px;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
+    .chip--neutral {
+      background: #f3f4f6;
+      color: #374151;
+    }
 
-        .kpi-label {
-            font-size: 13px;
-            opacity: 0.7;
-        }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 4px;
+    }
 
-        .kpi-value {
-            font-size: 24px;
-            font-weight: 700;
-        }
+    .status-dot.green {
+      background: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.25);
+    }
 
-        .kpi-sub {
-            font-size: 12px;
-            opacity: .65;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
+    .status-dot.purple {
+      background: #8b5cf6;
+      box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25);
+    }
 
-        .kpi-pill {
-            padding: 4px 8px;
-            border-radius: 999px;
-            font-size: 11px;
-            background: rgba(0, 0, 0, 0.25);
-        }
+    /* Conversão de Pix – barra */
+    .pix-bar {
+      margin-top: 10px;
+    }
 
-        .kpi-pill.up {
-            color: #80ffb6;
-        }
+    .pix-bar-track {
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }
 
-        .kpi-pill.down {
-            color: #ff7baf;
-        }
+    .pix-bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, #22c55e, #16a34a);
+      width: 0%;
+      transition: width 0.4s ease;
+    }
 
-        .content-row {
-            display: grid;
-            grid-template-columns: 2.1fr 1.3fr;
-            gap: 16px;
-            align-items: stretch;
-        }
+    .pix-bar-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      margin-top: 4px;
+      opacity: 0.75;
+    }
 
-        @media (max-width: 900px) {
-            body {
-                flex-direction: column;
-            }
+    /* COMPORTAMENTO DO CLIENTE */
 
-            .sidebar {
-                width: 100%;
-                flex-direction: row;
-                overflow-x: auto;
-            }
+    .section-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
 
-            .main {
-                padding: 16px;
-            }
+    .section-sub {
+      font-size: 12px;
+      opacity: 0.7;
+      margin-bottom: 12px;
+    }
 
-            .content-row {
-                grid-template-columns: 1fr;
-            }
-        }
+    .funnel-wrapper {
+      background: #ffffff;
+      border-radius: 16px;
+      padding: 16px 18px;
+      border: 1px solid rgba(15, 23, 42, 0.04);
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.04);
+      margin-bottom: 24px;
+    }
 
-        .card {
-            background: rgba(17, 18, 34, 0.95);
-            border-radius: 18px;
-            padding: 18px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.04);
-        }
+    .funnel-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 16px;
+    }
 
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
+    .funnel-step {
+      text-align: center;
+    }
 
-        .card-title {
-            font-size: 15px;
-            font-weight: 600;
-        }
+    .funnel-circle-wrap {
+      width: 64px;
+      height: 64px;
+      border-radius: 999px;
+      margin: 0 auto 6px auto;
+      background: radial-gradient(circle at top, #a855f7, #4c1d95);
+      padding: 2px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-        .pill-select {
-            font-size: 12px;
-            background: rgba(255, 255, 255, 0.04);
-            border-radius: 999px;
-            padding: 4px 10px;
-        }
+    .funnel-circle-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 999px;
+      background: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 600;
+      color: #4c1d95;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 13px;
-        }
+    .funnel-label {
+      font-size: 12px;
+      font-weight: 500;
+      margin-bottom: 2px;
+    }
 
-        th,
-        td {
-            padding: 6px 0;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-        }
+    .funnel-desc {
+      font-size: 11px;
+      opacity: 0.65;
+    }
 
-        th {
-            text-align: left;
-            opacity: .6;
-            font-weight: 500;
-        }
+    .footer {
+      font-size: 11px;
+      opacity: 0.6;
+      margin-top: 12px;
+    }
 
-        td.amount {
-            text-align: right;
-        }
-
-        .status-pill {
-            font-size: 11px;
-            padding: 3px 7px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.04);
-        }
-
-        .status-abandoned {
-            color: #ff8ba3;
-        }
-
-        .status-started {
-            color: #f6d78b;
-        }
-
-        .live-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 999px;
-            background: #80ffb6;
-            box-shadow: 0 0 8px rgba(128, 255, 182, 0.7);
-        }
-    </style>
+    @media (max-width: 640px) {
+      body {
+        padding: 16px;
+      }
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+    }
+  </style>
 </head>
-
 <body>
-    <aside class="sidebar">
-        <div>
-            <div class="logo">CORVEX-LIKE</div>
+  <div class="layout">
+    <header>
+      <div>
+        <h1>Dashboard do Checkout</h1>
+        <span>Monitorando suas vendas em tempo quase real</span>
+      </div>
+      <div class="last-update" id="last-update">Atualizando…</div>
+    </header>
+
+    <div id="error-banner" class="error-banner"></div>
+
+    <!-- PRIMEIRA LINHA DE CARDS -->
+    <section class="grid">
+      <!-- Visitantes ativos -->
+      <div class="card">
+        <div class="card-title">
+          <span class="status-dot green"></span>
+          Visitantes ativos agora
+        </div>
+        <div class="card-main">
+          <div class="card-value" id="visitors-now">–</div>
+        </div>
+        <div class="card-sub">
+          Sessões que acessaram o checkout nos últimos <strong>5 minutos</strong>.
+        </div>
+        <div class="chip chip--neutral">
+          LIVE • Atualização automática
+        </div>
+      </div>
+
+      <!-- Checkouts iniciados hoje -->
+      <div class="card">
+        <div class="card-title">
+          <span class="status-dot purple"></span>
+          Checkouts iniciados hoje
+        </div>
+        <div class="card-main">
+          <div class="card-value" id="checkouts-started">–</div>
+        </div>
+        <div class="card-sub">
+          Cliques no botão <strong>“Gerar QR Code Pix”</strong> no dia de hoje.
+        </div>
+      </div>
+
+      <!-- Vendas hoje -->
+      <div class="card">
+        <div class="card-title">
+          Vendas hoje (Pix aprovado)
+        </div>
+        <div class="card-main">
+          <div class="card-value" id="sales-today">–</div>
+        </div>
+        <div class="card-sub">
+          Soma dos pedidos com evento <strong>order_paid</strong> hoje.
+        </div>
+      </div>
+
+      <!-- Carrinhos abandonados hoje -->
+      <div class="card">
+        <div class="card-title">
+          Carrinhos abandonados hoje
+        </div>
+        <div class="card-main">
+          <div class="card-value" id="abandoned-carts">–</div>
+        </div>
+        <div class="card-sub">
+          Aproximação: <strong>Pix gerados – Pix pagos</strong> no dia de hoje.
+        </div>
+      </div>
+    </section>
+
+    <!-- SEGUNDA LINHA: CONVERSÃO, PEDIDOS, RECEITA -->
+    <section class="grid" style="margin-top:8px;">
+      <!-- Conversão geral (7 dias) -->
+      <div class="card">
+        <div class="card-title">
+          Conversão do checkout (últimos 7 dias)
+        </div>
+        <div class="card-main">
+          <div class="card-value" id="conversion-7d">–</div>
+          <div class="card-sub">%</div>
+        </div>
+        <div class="card-sub">
+          <strong>Pedidos pagos ÷ Pix gerados</strong> nos últimos 7 dias.
+        </div>
+      </div>
+
+      <!-- Pedidos pagos 7d -->
+      <div class="card">
+        <div class="card-title">
+          Pedidos pagos (últimos 7 dias)
+        </div>
+        <div class="card-main">
+          <div class="card-value" id="orders-7d">–</div>
+        </div>
+        <div class="card-sub">
+          Total de eventos <strong>order_paid</strong> nesse período.
+        </div>
+      </div>
+
+      <!-- Receita 7d -->
+      <div class="card">
+        <div class="card-title">
+          Receita (últimos 7 dias)
+        </div>
+        <div class="card-main">
+          <div class="card-value" id="revenue-7d">–</div>
+        </div>
+        <div class="card-sub">
+          Valor financeiro confirmado apenas de pedidos pagos.
+        </div>
+      </div>
+    </section>
+
+    <!-- CONVERSÃO DE PIX -->
+    <section style="margin-top: 24px;" class="grid">
+      <div class="card" style="grid-column: span 2;">
+        <div class="card-title">
+          CONVERSÃO DE PIX
+        </div>
+        <div class="card-main">
+          <div class="card-value" id="pix-conversion-percent">–</div>
+          <div class="card-sub">de aprovação</div>
+        </div>
+        <div class="card-sub" id="pix-conversion-text">
+          Aguardando dados…
         </div>
 
-        <div>
-            <div class="sidebar-section-title">Principal</div>
-            <ul class="nav-list">
-                <li class="nav-item active"><span class="bullet"></span> Início</li>
-                <li class="nav-item">Análises</li>
-                <li class="nav-item">Pedidos</li>
-                <li class="nav-item">Carrinhos Abandonados</li>
-            </ul>
+        <div class="pix-bar">
+          <div class="pix-bar-track">
+            <div class="pix-bar-fill" id="pix-bar-fill"></div>
+          </div>
+          <div class="pix-bar-legend">
+            <span id="pix-generated-label">Pix gerados: –</span>
+            <span id="pix-paid-label">Pix pagos: –</span>
+          </div>
         </div>
-    </aside>
+      </div>
+    </section>
 
-    <main class="main">
-        <header class="main-header">
-            <div>
-                <div class="store-pill">
-                    <span>Loja:</span> <strong>Black Friday</strong>
-                </div>
-                <h1 class="main-title">Bem-vindo de volta ao painel.</h1>
-                <span style="font-size:13px; opacity:.7;">Acompanhe o desempenho em tempo real do seu checkout
-                    próprio.</span>
+    <!-- COMPORTAMENTO DO CLIENTE (10 MINUTOS) -->
+    <section style="margin-top: 24px;">
+      <div class="funnel-wrapper">
+        <div class="section-title">
+          COMPORTAMENTO DO CLIENTE
+        </div>
+        <div class="section-sub">
+          Como os clientes estão se comportando no checkout nos últimos
+          <strong>10 minutos</strong>.
+        </div>
+
+        <div class="funnel-steps">
+          <div class="funnel-step">
+            <div class="funnel-circle-wrap">
+              <div class="funnel-circle-inner" id="funnel-checkout">
+                –
+              </div>
             </div>
-            <div>
-                <span class="badge">AO VIVO</span>
+            <div class="funnel-label">Checkout</div>
+            <div class="funnel-desc">Visitou a página do checkout.</div>
+          </div>
+
+          <div class="funnel-step">
+            <div class="funnel-circle-wrap">
+              <div class="funnel-circle-inner" id="funnel-personal">
+                –
+              </div>
             </div>
-        </header>
+            <div class="funnel-label">Dados pessoais</div>
+            <div class="funnel-desc">Começou a preencher identificação.</div>
+          </div>
 
-        <!-- KPIs principais -->
-        <section class="kpi-grid" id="kpi-grid">
-            <div class="kpi-card">
-                <div class="kpi-label">Visitantes ativos agora</div>
-                <div class="kpi-value" id="kpi-visitors">–</div>
-                <div class="kpi-sub">
-                    <span class="live-dot"></span>
-                    <span id="kpi-visitors-sub">Atualizando...</span>
-                </div>
+          <div class="funnel-step">
+            <div class="funnel-circle-wrap">
+              <div class="funnel-circle-inner" id="funnel-payment">
+                –
+              </div>
             </div>
+            <div class="funnel-label">Pagamento (Pix)</div>
+            <div class="funnel-desc">Gerou o QR Code Pix.</div>
+          </div>
 
-            <div class="kpi-card">
-                <div class="kpi-label">Checkouts iniciados</div>
-                <div class="kpi-value" id="kpi-checkouts">–</div>
-                <div class="kpi-sub">
-                    <span class="kpi-pill up" id="kpi-checkouts-change">+0% vs ontem</span>
-                    <span style="opacity:.6;">Últimas 24h</span>
-                </div>
+          <div class="funnel-step">
+            <div class="funnel-circle-wrap">
+              <div class="funnel-circle-inner" id="funnel-purchased">
+                –
+              </div>
             </div>
+            <div class="funnel-label">Comprou</div>
+            <div class="funnel-desc">Pagamento aprovado.</div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-            <div class="kpi-card">
-                <div class="kpi-label">Vendas hoje</div>
-                <div class="kpi-value" id="kpi-sales">R$ 0,00</div>
-                <div class="kpi-sub">
-                    <span class="kpi-pill up" id="kpi-sales-change">+0% vs ontem</span>
-                </div>
-            </div>
+    <div class="footer">
+      Painel alimentado pelos eventos <code>visit</code>, <code>checkout_started</code>,
+      <code>pix_generated</code> e <code>order_paid</code> enviados pelo seu checkout.
+    </div>
+  </div>
 
-            <div class="kpi-card">
-                <div class="kpi-label">Carrinhos abandonados</div>
-                <div class="kpi-value" id="kpi-abandoned">–</div>
-                <div class="kpi-sub">
-                    <span class="kpi-pill down" id="kpi-abandoned-change">0% abandono</span>
-                </div>
-            </div>
-        </section>
+  <script>
+    function formatTime(date) {
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(
+        date.getSeconds()
+      )}`;
+    }
 
-        <section class="content-row">
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">Resumo dos últimos 7 dias</div>
-                    <div class="pill-select">Últimos 7 dias ▼</div>
-                </div>
-                <p style="font-size:13px; opacity:.7; margin-bottom:12px;">
-                    Aqui você pode ver um resumo simples de pedidos, receita e taxa de conversão. Depois podemos plugar
-                    um gráfico real.
-                </p>
-                <div class="kpi-grid">
-                    <div class="kpi-card">
-                        <div class="kpi-label">Pedidos</div>
-                        <div class="kpi-value" id="kpi-orders-7d">–</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-label">Receita</div>
-                        <div class="kpi-value" id="kpi-revenue-7d">R$ 0,00</div>
-                    </div>
-                    <div class="kpi-card">
-                        <div class="kpi-label">Taxa de conversão</div>
-                        <div class="kpi-value" id="kpi-conversion-7d">0%</div>
-                    </div>
-                </div>
-            </div>
+    async function fetchMetrics() {
+      const errorBanner = document.getElementById('error-banner');
 
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">Carrinhos abandonados (hoje)</div>
-                    <div class="pill-select">Atualizado agora</div>
-                </div>
-                <table id="abandoned-table">
-                    <thead>
-                        <tr>
-                            <th>Cliente</th>
-                            <th>Etapa</th>
-                            <th class="amount">Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- linhas preenchidas via JS -->
-                    </tbody>
-                </table>
-            </div>
-        </section>
+      try {
+        const resp = await fetch('/api/metrics');
+        if (!resp.ok) {
+          throw new Error('Erro HTTP ' + resp.status);
+        }
+        const data = await resp.json();
 
-        <script>
-            async function carregarDashboard() {
-                try {
-                    const resp = await fetch('/api/metrics');
-                    const data = await resp.json();
+        // Cards principais
+        document.getElementById('visitors-now').textContent =
+          typeof data.visitorsNow === 'number' ? data.visitorsNow : '0';
 
-                    // KPIs principais
-                    document.getElementById('kpi-visitors').innerText = data.visitorsNow ?? 0;
-                    document.getElementById('kpi-visitors-sub').innerText =
-                        data.visitorsNow === 1 ? '1 visitante ativo' : (data.visitorsNow + ' visitantes ativos');
+        document.getElementById('checkouts-started').textContent =
+          typeof data.checkoutsStarted === 'number' ? data.checkoutsStarted : '0';
 
-                    document.getElementById('kpi-checkouts').innerText = data.checkoutsStarted ?? 0;
-                    document.getElementById('kpi-checkouts-change').innerText = data.checkoutsChangeText ?? '+0% vs ontem';
+        document.getElementById('sales-today').textContent =
+          data.salesTodayBRL || 'R$ 0,00';
 
-                    document.getElementById('kpi-sales').innerText = data.salesTodayBRL ?? 'R$ 0,00';
-                    document.getElementById('kpi-sales-change').innerText = data.salesChangeText ?? '+0% vs ontem';
+        document.getElementById('abandoned-carts').textContent =
+          typeof data.abandonedCarts === 'number'
+            ? data.abandonedCarts
+            : '0';
 
-                    document.getElementById('kpi-abandoned').innerText = data.abandonedCarts ?? 0;
-                    document.getElementById('kpi-abandoned-change').innerText =
-                        (data.abandonedRateText ?? '0% abandono');
+        // 7 dias
+        document.getElementById('conversion-7d').textContent =
+          typeof data.conversion7d === 'number' ? data.conversion7d : '0';
 
-                    // Últimos 7 dias
-                    document.getElementById('kpi-orders-7d').innerText = data.orders7d ?? 0;
-                    document.getElementById('kpi-revenue-7d').innerText = data.revenue7dBRL ?? 'R$ 0,00';
-                    document.getElementById('kpi-conversion-7d').innerText = (data.conversion7d ?? 0) + '%';
+        document.getElementById('orders-7d').textContent =
+          typeof data.orders7d === 'number' ? data.orders7d : '0';
 
-                    // Tabela de carrinhos abandonados
-                    const tbody = document.querySelector('#abandoned-table tbody');
-                    tbody.innerHTML = '';
-                    (data.abandonedList || []).forEach(item => {
-                        const tr = document.createElement('tr');
-                        tr.innerHTML = `
-              <td>${item.name || 'Visitante'}</td>
-              <td><span class="status-pill status-abandoned">${item.stage || 'Pagamento'}</span></td>
-              <td class="amount">R$ ${(item.amount / 100).toFixed(2).replace('.', ',')}</td>
-            `;
-                        tbody.appendChild(tr);
-                    });
+        document.getElementById('revenue-7d').textContent =
+          data.revenue7dBRL || 'R$ 0,00';
 
-                } catch (e) {
-                    console.error('Erro ao carregar métricas:', e);
-                }
-            }
+        // Conversão de Pix
+        if (data.pixConversion) {
+          const pc = data.pixConversion.percent ?? 0;
+          const gen = data.pixConversion.generated7d ?? 0;
+          const paid = data.pixConversion.paid7d ?? 0;
 
-            // carrega ao abrir
-            carregarDashboard();
-            // e atualiza a cada 30s
-            setInterval(carregarDashboard, 30000);
-        </script>
-    </main>
+          document.getElementById('pix-conversion-percent').textContent = pc;
+          document.getElementById(
+            'pix-conversion-text'
+          ).textContent = `Baseado em ${gen} Pix gerados e ${paid} Pix pagos nos últimos 7 dias.`;
+
+          document.getElementById(
+            'pix-generated-label'
+          ).textContent = `Pix gerados: ${gen}`;
+          document.getElementById(
+            'pix-paid-label'
+          ).textContent = `Pix pagos: ${paid}`;
+
+          const bar = document.getElementById('pix-bar-fill');
+          bar.style.width = pc > 100 ? '100%' : pc + '%';
+        }
+
+        // COMPORTAMENTO DO CLIENTE – últimos 10 min
+        if (data.funnelLast10) {
+          document.getElementById('funnel-checkout').textContent =
+            data.funnelLast10.checkoutViews ?? '0';
+          document.getElementById('funnel-personal').textContent =
+            data.funnelLast10.personalData ?? '0';
+          document.getElementById('funnel-payment').textContent =
+            data.funnelLast10.paymentStep ?? '0';
+          document.getElementById('funnel-purchased').textContent =
+            data.funnelLast10.purchased ?? '0';
+        }
+
+        // Atualiza horário
+        document.getElementById('last-update').textContent =
+          'Atualizado às ' + formatTime(new Date());
+
+        errorBanner.style.display = 'none';
+      } catch (err) {
+        console.error('Erro ao carregar métricas:', err);
+        errorBanner.textContent =
+          'Erro ao carregar métricas do painel. Verifique se /api/metrics está funcionando.';
+        errorBanner.style.display = 'block';
+      }
+    }
+
+    // Primeiro load
+    fetchMetrics();
+    // Atualização automática (5 segundos)
+    setInterval(fetchMetrics, 5000);
+  </script>
 </body>
-
 </html>
