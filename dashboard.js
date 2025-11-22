@@ -1,343 +1,234 @@
-// ===== ESTADO GLOBAL =====
-let currentRange = 'today'; // 'today' | '7d' | '30d'
-let revenueChart = null;
-let pixChart = null;
+// dashboard.js
 
-// ===== HELPERS BÁSICOS =====
-function safeNumber(v) {
-  const n = Number(v);
-  return Number.isFinite(n) ? n : 0;
-}
-
-function formatLabelDate(isoString) {
-  if (!isoString) return '';
-  const d = new Date(isoString);
-
-  if (currentRange === 'today') {
-    // Ex.: 14:30
-    return d.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  }
-
-  // Ex.: 22/11
-  return d.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit'
+function formatCurrencyBRL(cents) {
+  const value = (Number(cents || 0) / 100);
+  return value.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL'
   });
 }
 
-function animateNumber(el, target, prefix = '', suffix = '') {
-  if (!el) return;
-  const start = safeNumber(el.dataset.value || 0);
-  const end = safeNumber(target);
-  const duration = 350;
-  const startTime = performance.now();
-
-  el.dataset.value = end;
-
-  function frame(now) {
-    const progress = Math.min((now - startTime) / duration, 1);
-    const value = start + (end - start) * progress;
-    el.textContent =
-      prefix +
-      value.toLocaleString('pt-BR', {
-        maximumFractionDigits: 0
-      }) +
-      suffix;
-
-    if (progress < 1) requestAnimationFrame(frame);
-  }
-
-  requestAnimationFrame(frame);
+function pct(num) {
+  if (!isFinite(num) || isNaN(num)) return 0;
+  if (num < 0) return 0;
+  if (num > 100) return 100;
+  return Math.round(num);
 }
 
-function setText(elId, value, formatter) {
-  const el = document.getElementById(elId);
-  if (!el) return;
-  const v = value ?? 0;
-  el.textContent = formatter ? formatter(v) : String(v);
+// === DOM HELPERS ===
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
 }
 
-// ===== APLICAÇÃO DAS MÉTRICAS NOS CARDS =====
-function applyMetricsToCards(m) {
-  if (!m) return;
-
-  // Visitantes ativos (últimos 5 min)
-  setText('visitors-active-value', safeNumber(m.visitors_active), (v) =>
-    v.toLocaleString('pt-BR')
-  );
-
-  // Checkouts iniciados hoje
-  setText(
-    'checkouts-today-value',
-    safeNumber(m.checkouts_today),
-    (v) => v.toLocaleString('pt-BR')
-  );
-
-  // Vendas hoje (Pix pago)
-  const ordersPaidToday = safeNumber(m.orders_paid_today);
-  setText(
-    'sales-today-value',
-    ordersPaidToday,
-    (v) => v.toLocaleString('pt-BR')
-  );
-
-  // Carrinhos abandonados hoje
-  setText(
-    'abandoned-today-value',
-    safeNumber(m.abandoned_today),
-    (v) => v.toLocaleString('pt-BR')
-  );
-
-  // Receita (últimos 7 / 30 dias) em reais
-  const revenue7d = safeNumber(m.revenue_7d) / 100;
-  const revEl = document.getElementById('revenue-7d-value');
-  if (revEl) {
-    revEl.textContent = revenue7d.toLocaleString('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2
-    });
-  }
-
-  // Conversão do checkout (%)
-  const checkoutConv = safeNumber(m.checkout_conversion);
-  setText('checkout-conv-value', checkoutConv, (v) => `${v.toFixed(1)}%`);
-
-  // Conversão de Pix (%)
-  const pixConv = safeNumber(m.pix_conversion);
-  setText('pix-conv-value', pixConv, (v) => `${v.toFixed(1)}%`);
-
-  // Quantidades Pix gerados / pagos (card de conversão de Pix)
-  setText(
-    'pix-count-generated',
-    safeNumber(m.pix_generated_7d),
-    (v) => v.toLocaleString('pt-BR')
-  );
-  setText(
-    'pix-count-paid',
-    safeNumber(m.pix_paid_7d),
-    (v) => v.toLocaleString('pt-BR')
-  );
-
-  // Comportamento do cliente (etapas bolinhas)
-  if (m.steps) {
-    setText(
-      'step-checkout-count',
-      safeNumber(m.steps.checkout),
-      (v) => v.toLocaleString('pt-BR')
-    );
-    setText(
-      'step-pix-count',
-      safeNumber(m.steps.pix_generated),
-      (v) => v.toLocaleString('pt-BR')
-    );
-    setText(
-      'step-paid-count',
-      safeNumber(m.steps.order_paid),
-      (v) => v.toLocaleString('pt-BR')
-    );
+function setProgress(id, percent) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.style.width = pct(percent) + '%';
   }
 }
 
-// ===== GRÁFICOS (LINHA / BARRAS) =====
-function updateCharts(series) {
-  if (!series || !Array.isArray(series.labels)) return;
-
-  const labels = series.labels.map(formatLabelDate);
-
-  // Receita em reais
-  const revenue = (series.revenue || []).map((c) => safeNumber(c) / 100);
-
-  // Pix gerados / pagos (já normalizados)
-  const pixGenerated = (series.pix_generated || []).map((v) => safeNumber(v));
-  const pixPaid = (series.pix_paid || []).map((v) => safeNumber(v));
-
-  const maxPixValue = Math.max(
-    1,
-    ...(pixGenerated.length ? pixGenerated : [0]),
-    ...(pixPaid.length ? pixPaid : [0])
-  );
-
-  // ===== Gráfico de Receita (linha) =====
-  const ctxRevenue = document
-    .getElementById('chart-revenue')
-    ?.getContext('2d');
-
-  if (ctxRevenue) {
-    if (!revenueChart) {
-      revenueChart = new Chart(ctxRevenue, {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Receita (R$)',
-              data: revenue,
-              tension: 0.3,
-              borderWidth: 2.5,
-              fill: true,
-              backgroundColor: 'rgba(108, 92, 231, 0.12)',
-              borderColor: '#6c5ce7',
-              pointRadius: 3,
-              pointHoverRadius: 5
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false },
-            tooltip: {
-              callbacks: {
-                label: (ctx) =>
-                  `Receita: R$ ${ctx.parsed.y.toLocaleString('pt-BR', {
-                    minimumFractionDigits: 2
-                  })}`
-              }
-            }
-          },
-          scales: {
-            x: {
-              ticks: { maxRotation: 0, autoSkip: true },
-              grid: { display: false }
-            },
-            y: {
-              beginAtZero: true,
-              grid: { color: 'rgba(148, 163, 184, 0.25)' }
-            }
-          }
-        }
-      });
-    } else {
-      revenueChart.data.labels = labels;
-      revenueChart.data.datasets[0].data = revenue;
-      revenueChart.update();
-    }
-  }
-
-  // ===== Gráfico de Pix (barras) =====
-  const ctxPix = document.getElementById('chart-pix')?.getContext('2d');
-
-  if (ctxPix) {
-    if (!pixChart) {
-      pixChart = new Chart(ctxPix, {
-        type: 'bar',
-        data: {
-          labels,
-          datasets: [
-            {
-              label: 'Pix gerados',
-              data: pixGenerated,
-              backgroundColor: 'rgba(129, 140, 248, 0.7)',
-              borderRadius: 6,
-              maxBarThickness: 26,
-              barPercentage: 0.6,
-              categoryPercentage: 0.7
-            },
-            {
-              label: 'Pix pagos',
-              data: pixPaid,
-              backgroundColor: '#6c5ce7',
-              borderRadius: 6,
-              maxBarThickness: 26,
-              barPercentage: 0.6,
-              categoryPercentage: 0.7
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: true,
-              position: 'bottom'
-            },
-            tooltip: {
-              callbacks: {
-                label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y}`
-              }
-            }
-          },
-          scales: {
-            x: {
-              stacked: false,
-              grid: { display: false }
-            },
-            y: {
-              beginAtZero: true,
-              suggestedMax: maxPixValue + 1,
-              grid: { color: 'rgba(148, 163, 184, 0.25)' }
-            }
-          }
-        }
-      });
-    } else {
-      pixChart.data.labels = labels;
-      pixChart.data.datasets[0].data = pixGenerated;
-      pixChart.data.datasets[1].data = pixPaid;
-      pixChart.options.scales.y.suggestedMax = maxPixValue + 1;
-      pixChart.update();
-    }
-  }
+function setFunnelStep(idFill, idText, percent) {
+  const fill = document.getElementById(idFill);
+  const txt = document.getElementById(idText);
+  const p = pct(percent);
+  if (fill) fill.style.setProperty('--percent', p);
+  if (txt) txt.textContent = p + '%';
 }
 
-// ===== FETCH DAS MÉTRICAS (API) =====
-async function fetchAndRenderMetrics() {
-  const errorBanner = document.getElementById('metrics-error');
+// === GRÁFICOS (BARRAS SIMPLES) ===
+function renderBarChart(containerId, series, options) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
 
+  // Se não veio série ou veio vazia, exibe placeholder
+  if (!series || !series.length) {
+    container.innerHTML = '<div class="chart-empty">Sem dados suficientes para este período.</div>';
+    return;
+  }
+
+  const key = options.key;
+  const labelKey = options.labelKey || 'label';
+
+  const maxValue = series.reduce((max, item) => {
+    const v = Number(item[key] || 0);
+    return v > max ? v : max;
+  }, 0) || 1;
+
+  container.innerHTML = `
+    <div class="chart-bars">
+      ${series.map(item => {
+        const value = Number(item[key] || 0);
+        const heightPercent = (value / maxValue) * 100;
+        const label = String(item[labelKey] || '');
+        return `
+          <div class="chart-bar">
+            <div class="chart-bar-inner" style="height:${heightPercent}%;"></div>
+            <div class="chart-bar-label">${label}</div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+// === CHAMADA À API ===
+let currentRange = 'today';
+
+async function loadMetrics(range) {
   try {
-    if (errorBanner) errorBanner.classList.add('hidden');
-
-    const res = await fetch(`/api/metrics?range=${currentRange}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
+    const res = await fetch(`/api/metrics?range=${encodeURIComponent(range)}`);
     const data = await res.json();
 
-    applyMetricsToCards(data);
-    if (data.series) {
-      updateCharts(data.series);
+    if (!res.ok) {
+      console.error('Erro metrics:', data);
+      showError(true);
+      return;
     }
+
+    showError(false);
+    applyMetrics(data, range);
   } catch (err) {
-    console.error('Erro ao carregar métricas:', err);
-    if (errorBanner) errorBanner.classList.remove('hidden');
+    console.error('Erro geral ao buscar métricas:', err);
+    showError(true);
   }
 }
 
-// ===== FILTROS DE PERÍODO (Hoje / 7 dias / 30 dias) =====
-function setActiveRangeButton() {
-  const buttons = document.querySelectorAll('[data-range]');
-  buttons.forEach((btn) => {
-    const range = btn.getAttribute('data-range');
-    if (range === currentRange) {
-      btn.classList.add('range-active');
-    } else {
-      btn.classList.remove('range-active');
-    }
+function showError(show) {
+  const alert = document.getElementById('alert-error');
+  if (!alert) return;
+  alert.classList.toggle('hidden', !show);
+}
+
+// === APLICA AS MÉTRICAS NO LAYOUT ===
+function applyMetrics(data, range) {
+  currentRange = range;
+
+  const rangeLabel = range === 'today'
+    ? 'hoje'
+    : (range === '30d' ? '30 dias' : '7 dias');
+
+  const visitorsActive = Number(data.visitors_active || 0);
+  const checkoutsToday = Number(data.checkouts_today || 0);
+  const ordersPaidToday = Number(data.orders_paid_today || 0);
+  const abandonedToday = Number(data.abandoned_today || 0);
+
+  const pixGenerated7d = Number(data.pix_generated_7d || 0);
+  const pixPaid7d = Number(data.pix_paid_7d || 0);
+  const revenue7d = Number(data.revenue_7d || 0);
+
+  const pixConversionViaApi = Number(data.pix_conversion || 0);
+  const checkoutConversionViaApi = Number(data.checkout_conversion || 0);
+
+  const steps = data.steps || {};
+  const stepCheckout = Number(steps.checkout || 0);
+  const stepPix = Number(steps.pix_generated || 0);
+  const stepPaid = Number(steps.order_paid || 0);
+
+  // === CARDS LIVE ===
+  setText('kpi-visitors-active', visitorsActive.toString());
+  setText('kpi-checkouts-today', checkoutsToday.toString());
+  setText('kpi-orders-paid-today', ordersPaidToday.toString());
+  setText('kpi-orders-paid-today-amount', ordersPaidToday > 0 ? 'Pedidos pagos hoje.' : 'Ainda sem pedidos pagos hoje.');
+  setText('kpi-abandoned-today', abandonedToday.toString());
+
+  // === PRINCIPAIS MÉTRICAS ===
+  setText('kpi-orders-paid-7d', pixPaid7d.toString());
+  setText('kpi-revenue-7d', formatCurrencyBRL(revenue7d));
+
+  const ticket = (pixPaid7d > 0) ? (revenue7d / pixPaid7d) : 0;
+  setText('kpi-ticket', formatCurrencyBRL(ticket));
+  setText('label-range-kpi', rangeLabel);
+
+  // === CONVERSÃO PIX ===
+  let pixConv = pixConversionViaApi;
+  if ((!pixConv || pixConv === 0) && pixGenerated7d > 0) {
+    pixConv = (pixPaid7d / pixGenerated7d) * 100;
+  }
+  const pixConvDisplay = pct(pixConv);
+  setText('kpi-pix-conversion', pixConvDisplay + '%');
+  setProgress('progress-pix', pixConvDisplay);
+  setText('kpi-pix-extra', `Pix gerados: ${pixGenerated7d} • Pix pagos: ${pixPaid7d}`);
+  setText('kpi-pix-numbers', `${pixPaid7d} pagos de ${pixGenerated7d} gerados`);
+
+  // === CONVERSÃO CHECKOUT ===
+  let checkoutConv = checkoutConversionViaApi;
+  if ((!checkoutConv || checkoutConv === 0) && stepCheckout > 0 && stepPaid > 0) {
+    checkoutConv = (stepPaid / stepCheckout) * 100;
+  }
+  const checkoutConvDisplay = pct(checkoutConv);
+  setText('kpi-checkout-conversion', checkoutConvDisplay + '%');
+  setProgress('progress-checkout', checkoutConvDisplay);
+  setText('kpi-checkout-numbers', `${stepPaid} pedidos pagos de ${stepCheckout} entradas no checkout`);
+
+  // === FUNIL (ENTROU -> GEROU PIX -> PAGOU) ===
+  // Percentuais relativos à primeira etapa
+  const step1 = stepCheckout || pixGenerated7d || pixPaid7d || 0;
+  const base = step1 > 0 ? step1 : 1;
+
+  const percCheckout = 100;
+  const percPix = (stepPix || pixGenerated7d) / base * 100;
+  const percPaid = (stepPaid || pixPaid7d) / base * 100;
+
+  setFunnelStep('funnel-step-checkout', 'funnel-step-checkout-text', percCheckout);
+  setFunnelStep('funnel-step-pix', 'funnel-step-pix-text', percPix);
+  setFunnelStep('funnel-step-paid', 'funnel-step-paid-text', percPaid);
+
+  // === GRÁFICOS (se o backend enviar séries, usa; senão mostra placeholder) ===
+  const charts = data.charts || {};
+
+  // Vendas / dia
+  if (charts.revenue && charts.revenue.length) {
+    const seriesRevenue = charts.revenue.map(row => ({
+      label: (row.day_label || row.day || '').toString().slice(5, 10), // mm-dd
+      value_in_cents: Number(row.value_in_cents || row.value || 0)
+    }));
+    renderBarChart('chart-revenue', seriesRevenue, {
+      key: 'value_in_cents',
+      labelKey: 'label'
+    });
+  } else {
+    renderBarChart('chart-revenue', null, { key: 'value_in_cents' });
+  }
+
+  // Pix / dia
+  if (charts.pix && charts.pix.length) {
+    // Para simplificar, usa só pix_generated na barra; você pode duplicar para 2 barras se quiser depois
+    const seriesPix = charts.pix.map(row => ({
+      label: (row.day_label || row.day || '').toString().slice(5, 10),
+      pix_generated: Number(row.pix_generated || 0)
+    }));
+    renderBarChart('chart-pix', seriesPix, {
+      key: 'pix_generated',
+      labelKey: 'label'
+    });
+  } else {
+    renderBarChart('chart-pix', null, { key: 'pix_generated' });
+  }
+}
+
+// === CONTROLA BOTÕES DE PERÍODO ===
+function setupPeriodButtons() {
+  const buttons = document.querySelectorAll('.period-btn');
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      buttons.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const range = btn.getAttribute('data-range') || 'today';
+      loadMetrics(range);
+    });
   });
 }
 
-// ===== INIT =====
+// Atualização automática a cada 25s
+function setupAutoRefresh() {
+  setInterval(() => {
+    loadMetrics(currentRange);
+  }, 25000);
+}
+
 document.addEventListener('DOMContentLoaded', () => {
-  // Botões de período
-  const buttons = document.querySelectorAll('[data-range]');
-  buttons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const range = btn.getAttribute('data-range');
-      if (!range || range === currentRange) return;
-      currentRange = range;
-      setActiveRangeButton();
-      fetchAndRenderMetrics();
-    });
-  });
-
-  setActiveRangeButton();
-  fetchAndRenderMetrics();
-
-  // Atualização automática a cada 15s
-  setInterval(fetchAndRenderMetrics, 15000);
+  setupPeriodButtons();
+  setupAutoRefresh();
+  loadMetrics(currentRange);
 });
