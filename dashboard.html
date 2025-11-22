@@ -547,6 +547,33 @@
     fetchMetrics();
     // Atualização automática (5 segundos)
     setInterval(fetchMetrics, 5000);
+
+<script>
+async function loadMetrics() {
+  try {
+    const res = await fetch('/api/metrics');
+    const data = await res.json();
+
+    document.getElementById('visitors-active').innerText = data.activeVisitors;
+    document.getElementById('checkouts-today').innerText = data.checkoutsToday;
+    document.getElementById('sales-today').innerText = `R$ ${data.revenueToday.toLocaleString('pt-BR')}`;
+    document.getElementById('abandoned-today').innerText = data.abandonedToday;
+    document.getElementById('conversion-checkout').innerText = `${data.conversion7d}%`;
+
+    console.log("Atualizado em tempo real:", data);
+
+  } catch (e) {
+    console.error("Erro ao carregar métricas:", e);
+  }
+}
+
+// Atualiza a cada 5s
+setInterval(loadMetrics, 5000);
+loadMetrics();
+</script>
+
+    
   </script>
 </body>
 </html>
+
